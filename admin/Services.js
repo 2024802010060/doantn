@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Image, View, FlatList, TouchableOpacity, Alert, TextInput  } from "react-native";
+import { Image, View, FlatList, TouchableOpacity, Alert, TextInput,StyleSheet  } from "react-native";
 import { IconButton, Text} from "react-native-paper";
 import firestore from '@react-native-firebase/firestore';
 import { Menu, MenuTrigger, MenuOptions, MenuOption } from 'react-native-popup-menu';
@@ -52,6 +52,20 @@ const Services = ({ navigation }) => {
 
     return (
         <View style={{ backgroundColor:"white"}}>
+            <View style={{paddingLeft:20,paddingRight:20, alignItems: 'center', }} >
+                <TextInput
+                    value={name}
+                    placeholder="Tìm kiếm"
+                    placeholderTextColor="black"
+                    style={styles.inputContainerStyle}
+                    onChangeText={(text) => {
+                        setName(text);
+                        const result = initialServices.filter(service => service.title.toLowerCase().includes(text.toLowerCase()));
+                        setServices(result);
+                    }}
+                    
+                />
+            </View>
             <Image source={require("../assets/logo.png")}
                 style={{
                     alignSelf: "center",
@@ -60,25 +74,7 @@ const Services = ({ navigation }) => {
                     height:200,
                 }}
             />
-            <View style={{paddingLeft:20,paddingRight:20}} >
-            <TextInput
-                
-                value={name}
-                placeholder="Tìm kiếm"
-                onChangeText={(text) => {
-                    setName(text);
-                    const result = initialServices.filter(service => service.title.toLowerCase().includes(text.toLowerCase()));
-                    setServices(result);
-                }}
-                style={{borderColor: "#0066cc",
-                    borderWidth: 1,
-                    borderRadius: 50, // Tăng giá trị này nếu muốn bo tròn hơn nữa
-                    paddingHorizontal: 16,
-                    height: 60, // Đảm bảo chiều cao phù hợp với borderRadius
-                    fontSize:20
-                    }}
-            />
-            </View>
+            
             <View style={{
                 flexDirection: "row",
                 alignItems: "center",
@@ -89,7 +85,7 @@ const Services = ({ navigation }) => {
                     fontSize: 25,
                     fontWeight: "bold",
                 }}>
-                    Danh sách dịch vụ</Text>
+                    Danh sách sản phẩm</Text>
                     <TouchableOpacity onPress={() => navigation.navigate("AddNewService")}>
                       <Image source={require('../assets/add.png')} style={{ width: 30, height: 30, margin: 20 }} />
                     </TouchableOpacity>
@@ -107,3 +103,15 @@ const Services = ({ navigation }) => {
 }
 
 export default Services;
+const styles = StyleSheet.create({
+    inputContainerStyle:{
+        color:'black',
+        borderColor: "black", // Viền ngoài màu đen
+        backgroundColor: "white",
+        borderWidth: 1, // Độ dày viền
+        borderRadius: 10, // Bo tròn góc
+        marginTop: 10,
+        width: '97%', // Đặt chiều rộng theo tỷ lệ phần trăm
+        alignSelf: 'center' // Căn giữa input
+    },
+})

@@ -104,10 +104,11 @@ const Cart = () => {
                 email: userLogin.email,
                 fullName: userLogin.fullName,
                 services,
-                totalPrice,
+                totalPrice: total,
                 phone: userLogin.phone,
                 datetime,
-                state: "new"
+                state: "new",
+                appointment: "unpaid"
               })
               .then(r => {
                 APPOINTMENTs.doc(r.id).update({ id: app_trans_id });

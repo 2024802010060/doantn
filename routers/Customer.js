@@ -1,5 +1,5 @@
 import React from "react";
-import { createMaterialBottomTabNavigator } from "@react-navigation/material-bottom-tabs";
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import RouterServiceCustomer from "./RouterServiceCustomer";
 import Appointments from "../screens/Appointments";
 import ProfileCustomer from "../screens/ProfileCustomer";
@@ -9,24 +9,34 @@ import ServicesCustomer from "../screens/ServicesCustomer";
 import RouterProfile from "./RouterProfile";
 import RouterAppointment from "./RouterAppointment";
 import Map from "../screens/Map";
-  const Tab = createMaterialBottomTabNavigator();
+  const Tab = createBottomTabNavigator();
   //đây là thanh dưới của customer
-  
+  const color = "orange"
 const Customer = () => {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator
+      screenOptions={{
+        tabBarActiveTintColor: 'orange',
+        tabBarInactiveTintColor: 'black',
+        tabBarStyle: { backgroundColor: 'white', height: 65 },
+        tabBarPressColor: 'transparent',
+        
+      }}
+      
+    >
       <Tab.Screen
         name="RouterServiceCustomer"
         component={RouterServiceCustomer}
         options={{
           title: "Trang chủ",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Image
               source={require("../assets/home.png")}
               style={{ width: 24, height: 24, tintColor: color }}
             />
+            
           ),
-          
         }}
       />
       <Tab.Screen
@@ -34,6 +44,7 @@ const Customer = () => {
         component={Cart}
         options={{
           title: "Giỏ hàng",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Image
               source={require("../assets/iconcart.png")}
@@ -45,10 +56,11 @@ const Customer = () => {
         component={Map}
         options={{
           title: "Map",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Image
-              source={require("../assets/iconcart.png")}
-              style={{ width: 30, height: 24, tintColor: color }}
+              source={require("../assets/map.png")}
+              style={{ width: 30, height: 24, tintColor: color,resizeMode:"center" }}
       />)}}
       />
       <Tab.Screen
@@ -56,6 +68,7 @@ const Customer = () => {
         component={RouterAppointment}
         options={{
           title: "Đơn hàng",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Image
               source={require("../assets/appointment.png")}
@@ -70,6 +83,7 @@ const Customer = () => {
         component={RouterProfile}
         options={{
           title: "Hồ sơ",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <Image
               source={require("../assets/customer.png")}

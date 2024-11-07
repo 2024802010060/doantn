@@ -64,6 +64,7 @@ const Appointments = () => {
                         Trạng thái: {item.state === 'new' ? 'Đang duyệt' : 'Đã hoàn thành'}
                     </Paragraph>
                     <Paragraph style={styles.text}>Thời gian: {item.datetime ? item.datetime.toDate().toLocaleString() : 'Không xác định'}</Paragraph>
+                    <Paragraph style={styles.text}>Mã đơn hàng: {item.id.split('_').pop()}</Paragraph>
                     <Paragraph style={styles.text}>
                         Tổng tiền: {item.totalPrice.toLocaleString('vi-VN')}.000 vnđ
                     </Paragraph>

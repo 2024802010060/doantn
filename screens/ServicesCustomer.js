@@ -7,10 +7,7 @@ import { SwiperFlatList } from 'react-native-swiper-flatlist';
 import { Dimensions } from 'react-native';
 import { ScrollView } from "react-native-gesture-handler";
 
-
-
 const ServicesCustomer = ({ navigation, route }) => {
-    
     
     const [initialServices, setInitialServices] = useState([]);
     const [services, setServices] = useState([]);
@@ -48,38 +45,43 @@ const ServicesCustomer = ({ navigation, route }) => {
 
     const [name, setName] = useState('')
     const renderItem = ({ item }) => (
-        <TouchableOpacity onPress={() => handleAppointment(item)} style={{flexDirection: "row",height:110, margin: 10,padding: 10, borderRadius: 15, marginVertical: 5, backgroundColor: 'white' }}>
-            <View style={[styles.imageContainer]}>
-                {item.image !== "" && (
-                    <Image
-                        source={{ uri: item.image }}
-                        style={styles.image}
-                        resizeMode="contain"
-                    />
-                )}
-            </View>
-            <View style={{height:100, width:230,marginTop: 5}}>  
-                <Text style={{fontSize: 18, fontWeight: "bold"}}>{item.title}</Text>
-                <Text style={{fontSize: 18, fontWeight: "bold"}}>Giá: {item.price} vnđ</Text>
-            </View>
-        </TouchableOpacity>
+        <>
+        <View style={{marginRight:20,marginLeft:20, height: 1, backgroundColor: '#DDDDDD' }} />
+            <TouchableOpacity onPress={() => handleAppointment(item)} style={styles.borderender}>
+                <View style={[styles.viewrender]}>
+                    {item.image !== "" && (
+                        <Image
+                            source={{ uri: item.image }}
+                            style={styles.imagerender}
+                            resizeMode="center"
+                        />
+                    )}
+                </View>
+                <View style={{ height: 100, width: 230, marginTop: 5 }}>
+                    <Text style={{ fontSize: 18, fontWeight: "bold", paddingTop: 5 }}>{item.title}</Text>
+                    <Text style={{ fontSize: 18, fontWeight: "bold", paddingTop: 5 }}>Giá: {item.price} vnđ</Text>
+                </View>
+            </TouchableOpacity>
+            
+        </>
     );
     const randomitem = ({ item }) => (
-        <TouchableOpacity onPress={() => handleAppointment(item)} style={{width:150,height:170, margin: 10,padding: 10, borderRadius: 15, marginVertical: 5, backgroundColor: 'white' }}>
-            <View style={[styles.imageContainer, { marginTop: 20 }]}>
+        <TouchableOpacity 
+            onPress={() => handleAppointment(item)} 
+            style={styles.borderrandom}>
+            <View style={styles.viewrandom}>
                 {item.image !== "" && (
                     <Image
                         source={{ uri: item.image }}
-                        style={styles.image}
-                        resizeMode="contain"
+                        style={styles.imagerandom}
+                        resizeMode="stretch"
                     />
                 )}
-                <View >
-                    <Text style={{fontSize: 18, fontWeight: "bold"}}>{item.title}</Text>
-                    <Text style={{fontSize: 18, fontWeight: "bold"}}>{item.price} vnđ</Text>
-                </View>
             </View>
-            
+            <View >
+                <Text style={{fontSize: 18, fontWeight: "bold",paddingLeft:10}}>{item.title}</Text>
+                <Text style={{fontSize: 18, fontWeight: "bold",paddingLeft:10}}>{item.price} vnđ</Text>
+            </View>
         </TouchableOpacity>
     );
     
@@ -107,7 +109,14 @@ const ServicesCustomer = ({ navigation, route }) => {
 
     
     return (
-        <ScrollView style={{ flex: 1}}>
+        <FlatList
+            data={services}
+            renderItem={renderItem}
+            keyExtractor={item => item.id}
+            style={styles.flatmain}
+            ListHeaderComponent={
+                <>
+                    <View style={{ flex: 1}}>
             <View style={{paddingLeft:20,paddingRight:20, alignItems: 'center', }} >
                 <TextInput
                     value={name}
@@ -168,10 +177,10 @@ const ServicesCustomer = ({ navigation, route }) => {
                     }}
                 />
             </View>
-
-            <View style={{backgroundColor:"white", marginTop:10}}>
+            <View style={{backgroundColor:'#EEEEEE', height:10}}><Text></Text></View>
+            <View style={{marginTop:10}}>
             
-            <View style={{marginLeft: 20,flexDirection: "row", marginVertical: 10 }}>
+            <View style={{marginLeft: 20,flexDirection: "row" }}>
                 <TouchableOpacity style={styles.categoryButton} onPress={() => filterByCategory('all')}>
                     <Text style={styles.buttonText}>Tất cả</Text>
                 </TouchableOpacity>
@@ -185,20 +194,29 @@ const ServicesCustomer = ({ navigation, route }) => {
             </View>
             </View>
             <View style={{
-                justifyContent: "space-between"
+                justifyContent: "space-between",
+                
             }}>
+                <View style={{
+                
+                flexDirection: "row" 
+            }}>
+                <Image source={require('../assets/fire.png')} style={{ width: 35, height: 35, marginLeft: 15, marginTop: 15, marginBottom: 5 }} />
                 <Text style={{
                     padding: 15,
-                    fontSize: 25,
+                    fontSize: 30,
                     fontWeight: "bold",
                     alignItems: "left",
+                    color:'red'
                 }}>
-                    Có thể bạn sẽ thích</Text>
+                    Bán chạy</Text>
+                </View>
                 <FlatList
                 data={opi}
+                showsHorizontalScrollIndicator={false}
                 renderItem={randomitem}
                 keyExtractor={item => item.id}
-                style={{height:170}}
+                style={{height:180, backgroundColor:'white'}}
                 horizontal // Set the FlatList to display items horizontally
             />
             </View>
@@ -215,25 +233,20 @@ const ServicesCustomer = ({ navigation, route }) => {
                     alignItems: "left",
                 }}>
                     Danh sách sản phẩm</Text>
-                    <FlatList
-                data={services}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-                style={{height:400}}
-                
-            />
+                    
             </View>
             
-        </ScrollView>
-    )
-}
+        </View>
+                </>
+            }
+        />
+    );
+};
 const styles = StyleSheet.create({
     
-    rowitem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderTopWidth: 1,
-        borderColor: "#F0F0F1"
+    flatmain: {
+        backgroundColor:'white',
+        
     },
     Viewimg: {
         paddingLeft:15,
@@ -241,27 +254,48 @@ const styles = StyleSheet.create({
         alignSelf:"center",
         
     },
-    image: {
-        width:300,
-        height:220,
-        
-    },
     
-    imageContainer: {
-        width: 130,
-        height: 90, // Điều chỉnh chiều cao để phù hợp với tỷ lệ hình ảnh
-        borderRadius: 10,
-        
-        backgroundColor: 'white', // Thêm màu nền
+    imagerandom: {
+        width:150,
+        height:100,
+        borderRadius:15
+    },
+    borderrandom:{
+        width: 152,
+        height: 160,
+        margin: 10,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: 'black',
+    },
+    viewrandom: {
+        width: 150,
+        height: 100, // Điều chỉnh chiều cao để phù hợp với tỷ lệ hình ảnh
+        borderRadius: 15,
+        backgroundColor:'white',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    image: {
-        width: '100%', // Giảm xuống một chút để tránh chạm vào viền
-        height: '100%',
-        maxWidth: 130,
-        maxHeight: 130,
+    imagerender: {
+        width:150,
+        height:100,
+        borderRadius: 15,
     },
+    borderender:{
+        flexDirection: "row",
+        height:110, 
+        margin: 10,
+        
+    },
+    viewrender: {
+        width: 130,
+        height: 90, // Điều chỉnh chiều cao để phù hợp với tỷ lệ hình ảnh
+        borderRadius: 10,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    
     bannerSlide: {
         width: '90%',
         height: 220,
@@ -302,7 +336,6 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         borderWidth: 1,
         borderColor: 'black',
-        
         margin: 10,
     },
     buttonText: {

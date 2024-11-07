@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useReducer } from "react";
-import { Alert } from "react-native";
+import { Alert,Dimensions } from "react-native";
 import firestore from "@react-native-firebase/firestore";
 import auth from "@react-native-firebase/auth";
 // AppRegistry
@@ -123,4 +123,5 @@ export {
     login,
     logout,
     createnewservice,
+    
 };

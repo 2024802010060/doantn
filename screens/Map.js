@@ -1,137 +1,552 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, PermissionsAndroid, Platform, Alert, TextInput, Button, Image, TouchableOpacity, Text } from 'react-native';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
-import Geocoder from 'react-native-geocoding';
-import { PermissionsAndroid } from 'react-native';
-
-// Khởi tạo Geocoder với API key của bạn
-const apiKey = "YOUR_GOOGLE_MAPS_API_KEY"; // Thay YOUR_GOOGLE_MAPS_API_KEY bằng API key của bạn
-Geocoder.init(apiKey);
-console.log("Using API Key:", apiKey); // Log API key để kiểm tra
+import firestore from '@react-native-firebase/firestore';
+import { useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
+import { useMyContextProvider } from '..';
+const GEOAPIFY_API_KEY = 'be8283f0ca404169924653620c942bfa';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyAY147ZFhEL1fg7jQ-CdrK-sncScdCucG4'; // Thêm Google Maps API key của bạn
 
 const Map = () => {
   const [currentPosition, setCurrentPosition] = useState(null);
-  const [address, setAddress] = useState(''); // Thêm state để lưu địa chỉ
-  const [inputAddress, setInputAddress] = useState(''); // State cho địa chỉ nhập vào
-
-  const requestLocationPermission = async () => {
+  const [address, setAddress] = useState('');
+  const [destination, setDestination] = useState(null);
+  const [routeCoordinates, setRouteCoordinates] = useState([]);
+  const mapRef = useRef(null);
+  const [storeLocations, setStoreLocations] = useState([]);
+  const [addressSuggestions, setAddressSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const route = useRoute();
+  const { cartItems = [], totalAmount = 0, userInfo = {}, discountValue = 0 } = route.params || {};
+  const navigation = useNavigation();
+  const [controller] = useMyContextProvider();
+  const { userLogin } = controller;
+  const getCoordinatesFromAddress = async (address) => {
     try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-          title: "Location Permission",
-          message: "This app needs access to your location.",
-          buttonNeutral: "Ask Me Later",
-          buttonNegative: "Cancel",
-          buttonPositive: "OK"
-        }
-      );
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        console.log("You can use the location");
-      } else {
-        console.log("Location permission denied");
+      if (!address.trim()) {
+        Alert.alert('Error', 'Vui lòng nhập địa chỉ');
+        return;
       }
-    } catch (err) {
-      console.warn(err);
+
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(address)}&apiKey=${GEOAPIFY_API_KEY}&lang=vi`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const [longitude, latitude] = data.features[0].geometry.coordinates;
+        setCurrentPosition({ latitude, longitude });
+
+        const addressData = data.features[0].properties;
+        const formattedAddress = [
+          addressData.housenumber,
+          addressData.street,
+          addressData.district,
+          addressData.city,
+          addressData.country
+        ].filter(Boolean).join(', ');
+        
+        setAddress(formattedAddress);
+        console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
+        console.log(`Address: ${formattedAddress}`);
+      } else {
+        Alert.alert('Error', 'Không tìm thấy địa chỉ. Vui lòng thử lại với địa chỉ khác.');
+      }
+    } catch (error) {
+      console.error('Error details:', error);
+      Alert.alert('Error', 'Không thể lấy tọa độ. Vui lòng kiểm tra kết nối mạng và thử lại.');
     }
   };
-  
+
   useEffect(() => {
-    requestLocationPermission().then(() => {
+    const requestLocationPermission = async () => {
+      if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Permission to access location',
+            message: 'We need your location to show it on the map.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          }
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          getCurrentPosition();
+        } else {
+          Alert.alert('Location permission denied');
+        }
+      } else {
+        getCurrentPosition(); // iOS automatically handles permissions
+      }
+    };
+
+    const getCurrentPosition = () => {
       Geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           setCurrentPosition({ latitude, longitude });
-
-          // Chuyển đổi tọa độ thành địa chỉ
-          Geocoder.from(latitude, longitude)
-            .then(json => {
-              const addressComponent = json.results[0].formatted_address;
-              setAddress(addressComponent); // Cập nhật địa chỉ
-            })
-            .catch(error => console.log(error));
         },
-        (error) => console.log(error),
+        (error) => {
+          console.log(error);
+          Alert.alert('Error', 'Unable to retrieve location. Please try again.');
+        },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
       );
-    });
+    };
+
+    requestLocationPermission();
   }, []);
 
-  const searchAddress = () => {
-    console.log("Searching for address:", inputAddress); // Thêm dòng này để kiểm tra
-    Geocoder.from(inputAddress)
-      .then(json => {
-        console.log("Geocoder response:", json); // Thêm dòng này để kiểm tra phản hồi
-        const location = json.results[0].geometry.location;
-        setCurrentPosition({ latitude: location.lat, longitude: location.lng });
-        setAddress(json.results[0].formatted_address);
-      })
-      .catch(error => console.log("Error:", error)); // Thêm thông báo lỗi
+  useEffect(() => {
+    if (currentPosition && mapRef.current) {
+      mapRef.current.animateToRegion({
+        latitude: currentPosition.latitude,
+        longitude: currentPosition.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      }, 1000);
+    }
+  }, [currentPosition]);
+
+  // Thêm hàm tính khoảng cách giữa 2 điểm
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Bán kính trái đất tính bằng km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Khoảng cách tính bằng km
   };
 
-  const refreshLocation = () => {
-    console.log("Refreshing location..."); // Log để kiểm tra
-    Geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        console.log("Current position:", { latitude, longitude }); // Log vị trí hiện tại
-        setCurrentPosition({ latitude, longitude });
+  // Sửa lại hàm handleMapPress
+  const handleMapPress = async (event) => {
+    const { coordinate } = event.nativeEvent;
+    setCurrentPosition(coordinate);
+    
+    // Tìm cơ sở gần nhất
+    let nearestStore = null;
+    let shortestDistance = Infinity;
+    
+    storeLocations.forEach(store => {
+      const distance = calculateDistance(
+        coordinate.latitude,
+        coordinate.longitude,
+        parseFloat(store.latitude),
+        parseFloat(store.longitude)
+      );
+      
+      if (distance < shortestDistance) {
+        shortestDistance = distance;
+        nearestStore = store;
+      }
+    });
 
-        // Chuyển đổi tọa độ thành địa chỉ
-        Geocoder.from(latitude, longitude)
-          .then(json => {
-            const addressComponent = json.results[0].formatted_address;
-            setAddress(addressComponent); // Cập nhật địa chỉ
-            console.log("Address updated:", addressComponent); // Log địa chỉ
-          })
-          .catch(error => console.log("Geocoder error:", error)); // Log lỗi Geocoder
-      },
-      (error) => console.log("Geolocation error:", error), // Log lỗi Geolocation
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-    );
+    if (nearestStore) {
+      const storeCoordinate = {
+        latitude: parseFloat(nearestStore.latitude),
+        longitude: parseFloat(nearestStore.longitude)
+      };
+      setDestination(storeCoordinate);
+      
+      // Lấy và vẽ đường đi
+      const route = await getRouteFromGeoapify(coordinate, storeCoordinate);
+      setRouteCoordinates(route);
+      
+      // Hiển thị thông tin
+      Alert.alert(
+        'Cơ sở gần nhất',
+        `${nearestStore.name}\n${nearestStore.address}\nKhoảng cách: ${shortestDistance.toFixed(2)} km`
+      );
+    }
+
+    // Chuyển đổi tọa độ thành địa chỉ cho điểm xuất phát
+    try {
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/reverse?lat=${coordinate.latitude}&lon=${coordinate.longitude}&apiKey=${GEOAPIFY_API_KEY}&lang=vi`
+      );
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        const addressData = data.features[0].properties;
+        const formattedAddress = [
+          addressData.housenumber,
+          addressData.street,
+          addressData.district,
+          addressData.city,
+          addressData.country
+        ].filter(Boolean).join(', ');
+        
+        setAddress(formattedAddress);
+      }
+    } catch (error) {
+      console.error('Error getting address:', error);
+      Alert.alert('Error', 'Không thể lấy địa chỉ. Vui lòng thử lại.');
+    }
+  };
+
+  const getRouteFromGeoapify = async (start, end) => {
+    try {
+      const response = await fetch(
+        `https://api.geoapify.com/v1/routing?waypoints=${start.latitude},${start.longitude}|${end.latitude},${end.longitude}&mode=drive&apiKey=${GEOAPIFY_API_KEY}`
+      );
+      
+      const data = await response.json();
+      
+      if (data.features && data.features.length > 0) {
+        // Chuyển đổi coordinates từ Geoapify ([lon, lat]) sang định dạng của React Native Maps (latitude, longitude)
+        const routeCoordinates = data.features[0].geometry.coordinates[0].map(point => ({
+          latitude: point[1],
+          longitude: point[0]
+        }));
+        
+        // Vẽ đường đi bằng Polyline
+        return routeCoordinates;
+      }
+    } catch (error) {
+      console.error('Error getting route:', error);
+      Alert.alert('Error', 'Không thể lấy đường đi. Vui lòng thử lại.');
+    }
+  };
+
+  useEffect(() => {
+    const fetchStoreLocations = async () => {
+      try {
+        const snapshot = await firestore()
+          .collection('base')
+          .get();
+        
+        const locations = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        setStoreLocations(locations);
+      } catch (error) {
+        console.error('Error fetching store locations:', error);
+        Alert.alert('Error', 'Không thể lấy dữ liệu cửa hàng từ database');
+      }
+    };
+
+    fetchStoreLocations();
+  }, []);
+
+  const getAddressSuggestions = async (text) => {
+    try {
+      setAddress(text);
+      if (text.length < 3) { // Chỉ tìm kiếm khi có ít nhất 3 ký tự
+        setAddressSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      const response = await fetch(
+        `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(text)}&format=json&apiKey=${GEOAPIFY_API_KEY}&lang=vi&filter=countrycode:vn`
+      );
+      
+      const data = await response.json();
+      
+      if (data.results) {
+        setAddressSuggestions(data.results);
+        setShowSuggestions(true);
+      }
+    } catch (error) {
+      console.error('Error getting suggestions:', error);
+    }
+  };
+
+  const handleSelectAddress = async (suggestion) => {
+    const { lat, lon } = suggestion;
+    const selectedPosition = {
+      latitude: lat,
+      longitude: lon
+    };
+    
+    setCurrentPosition(selectedPosition);
+    setAddress(suggestion.formatted);
+    setShowSuggestions(false);
+    
+    // Tìm cơ sở gần nhất từ vị trí đã chọn
+    let nearestStore = null;
+    let shortestDistance = Infinity;
+    
+    storeLocations.forEach(store => {
+      const distance = calculateDistance(
+        lat,
+        lon,
+        parseFloat(store.latitude),
+        parseFloat(store.longitude)
+      );
+      
+      if (distance < shortestDistance) {
+        shortestDistance = distance;
+        nearestStore = store;
+      }
+    });
+
+    if (nearestStore) {
+      const storeCoordinate = {
+        latitude: parseFloat(nearestStore.latitude),
+        longitude: parseFloat(nearestStore.longitude)
+      };
+      setDestination(storeCoordinate);
+      
+      const route = await getRouteFromGeoapify(selectedPosition, storeCoordinate);
+      setRouteCoordinates(route);
+      
+      Alert.alert(
+        'Cơ sở gần nhất',
+        `${nearestStore.name}\n${nearestStore.address}\nKhoảng cách: ${shortestDistance.toFixed(2)} km`
+      );
+    }
+  };
+
+  const handleOrder = async () => {
+    if (!currentPosition || !address) {
+      Alert.alert('Thông báo', 'Vui lòng chọn địa chỉ trước khi xác nhận');
+      return;
+    }
+
+    // Kiểm tra xem address có hợp lệ không
+    if (!address.trim()) {
+      Alert.alert('Thông báo', 'Địa chỉ không hợp lệ');
+      return;
+    }
+
+    try {
+      await firestore()
+          .collection('User')
+          .doc(userLogin.email)
+          .update({
+              address: address
+          });
+    } catch (error) {
+      console.error("Lỗi khi cập nhật dịch vụ:", error);
+    }
   };
 
   return (
-    <View style={{ flex: 1 }}>
-      <TextInput
-        style={{ height: 40, borderColor: 'gray', borderWidth: 1, margin: 10, paddingLeft: 10 }}
-        placeholder="Nhập địa chỉ"
-        value={inputAddress}
-        onChangeText={setInputAddress} // Cập nhật địa chỉ nhập vào
-      />
-      <Button title="Tìm kiếm" onPress={searchAddress} />
-      <Button title="Làm mới vị trí" onPress={refreshLocation} />
-      <Text style={{ padding: 10 }}>Địa chỉ hiện tại: {address}</Text> 
+    <View style={{ 
+      flex: 1,
+      backgroundColor: 'white',
+    }}>
+      <View style={{ margin: 10 }}>
+        <TextInput
+          style={{
+            height: 40,
+            borderColor: 'gray',
+            borderWidth: 1,
+            paddingLeft: 8,
+            marginBottom: showSuggestions ? 0 : 10,
+            borderRadius: 5
+          }}
+          placeholder="Nhập địa chỉ"
+          value={address}
+          onChangeText={(text) => getAddressSuggestions(text)}
+        />
+        
+        {/* Danh sách gợi ý địa chỉ */}
+        {showSuggestions && addressSuggestions.length > 0 && (
+          <View style={{
+            maxHeight: 200,
+            backgroundColor: 'white',
+            borderWidth: 1,
+            borderColor: 'gray',
+            marginBottom: 10,
+            borderRadius: 5
+          }}>
+            {addressSuggestions.map((suggestion, index) => (
+              <TouchableOpacity
+                key={index}
+                style={{
+                  padding: 10,
+                  borderBottomWidth: 1,
+                  borderBottomColor: '#eee'
+                }}
+                onPress={() => handleSelectAddress(suggestion)}
+              >
+                <Text>{suggestion.formatted}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        <Button
+          title="Lấy vị trí hiện tại"
+          onPress={async () => {
+            Geolocation.getCurrentPosition(
+              async (position) => {
+                const { latitude, longitude } = position.coords;
+                const currentCoordinate = { latitude, longitude };
+                setCurrentPosition(currentCoordinate);
+
+                // Tìm cơ sở gần nhất
+                let nearestStore = null;
+                let shortestDistance = Infinity;
+                
+                storeLocations.forEach(store => {
+                  const distance = calculateDistance(
+                    latitude,
+                    longitude,
+                    parseFloat(store.latitude),
+                    parseFloat(store.longitude)
+                  );
+                  
+                  if (distance < shortestDistance) {
+                    shortestDistance = distance;
+                    nearestStore = store;
+                  }
+                });
+
+                if (nearestStore) {
+                  const storeCoordinate = {
+                    latitude: parseFloat(nearestStore.latitude),
+                    longitude: parseFloat(nearestStore.longitude)
+                  };
+                  setDestination(storeCoordinate);
+                  
+                  // Lấy và vẽ đường đi
+                  const route = await getRouteFromGeoapify(currentCoordinate, storeCoordinate);
+                  setRouteCoordinates(route);
+                  
+                  // Hiển thị thông tin
+                  Alert.alert(
+                    'Cơ sở gần nhất',
+                    `${nearestStore.name}\n${nearestStore.address}\nKhoảng cách: ${shortestDistance.toFixed(2)} km`
+                  );
+                }
+
+                // Chuyển đổi tọa độ thành địa chỉ cho điểm xuất phát
+                try {
+                  const response = await fetch(
+                    `https://api.geoapify.com/v1/geocode/reverse?lat=${latitude}&lon=${longitude}&apiKey=${GEOAPIFY_API_KEY}&lang=vi`
+                  );
+                  const data = await response.json();
+                  
+                  if (data.features && data.features.length > 0) {
+                    const addressData = data.features[0].properties;
+                    // Tạo địa chỉ đầy đủ từ dữ liệu
+                    const formattedAddress = [
+                      addressData.housenumber,
+                      addressData.street,
+                      addressData.district,
+                      addressData.city,
+                      addressData.country
+                    ].filter(Boolean).join(', ');
+                    
+                    setAddress(formattedAddress); // Cập nhật ô nhập địa chỉ
+                  }
+                } catch (error) {
+                  console.log(error);
+                  Alert.alert('Error', 'Không thể lấy địa chỉ. Vui lòng thử lại.');
+                }
+              },
+              (error) => {
+                console.log(error);
+                Alert.alert('Error', 'Không thể lấy vị trí. Vui lòng thử lại.');
+              },
+              { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
+            );
+          }}
+        />
+      </View>
+      
       <MapView
+        ref={mapRef}
         style={{ flex: 1 }}
-        initialRegion={currentPosition ? {
-          latitude: currentPosition.latitude,
-          longitude: currentPosition.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        } : {
-          latitude: 11.0036,
-          longitude: 106.6729,
+        initialRegion={{
+          latitude: 10.980724795723445,
+          longitude: 106.67531866840427,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}
+        showsUserLocation={true}
+        onPress={handleMapPress}
       >
         {currentPosition && (
           <Marker
             coordinate={currentPosition}
-            title={"Vị trí hiện tại"}
+            title={"Vị trí xuất phát"}
             description={address}
+            pinColor="red"
           />
         )}
-         <Marker
-          coordinate={{ latitude: 10.9803, longitude: 106.6744 }} // Tọa độ của Trường Đại Học Thủ Dầu Một
-          title={"Trường Đại Học Thủ Dầu Một"}
-          description={"Địa chỉ: 6 Nguyễn Văn Tiết, Phú Hòa, Thủ Dầu Một, Bình Dương"}
-        />
+        
+        {destination && (
+          <Marker
+            coordinate={destination}
+            title={"Điểm đến"}
+            pinColor="blue"
+          />
+        )}
+
+        {currentPosition && destination && routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeWidth={3}
+            strokeColor="blue"
+          />
+        )}
+
+        {storeLocations.map(store => (
+          <Marker
+            key={store.id}
+            coordinate={{
+              latitude: parseFloat(store.latitude),
+              longitude: parseFloat(store.longitude)
+            }}
+            title={store.name}
+            description={store.address}
+            pinColor="green"
+          />
+        ))}
       </MapView>
+
+      {/* Thêm nút xác nhận ở dưới */}
+      <View style={{
+        position: 'absolute',
+        bottom: 20,
+        left: 20,
+        right: 20,
+      }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#007AFF',
+            padding: 15,
+            borderRadius: 10,
+            alignItems: 'center',
+            shadowColor: "#000",
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+          }}
+          onPress={handleOrder}
+        >
+          <Text style={{
+            color: 'white',
+            fontSize: 16,
+            fontWeight: 'bold'
+          }}>Xác nhận địa chỉ</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
+
+
 
 export default Map;

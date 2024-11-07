@@ -34,23 +34,25 @@ const OrderDetail = ({ route, navigation }) => {
             {orderData ? (
                 <View style={styles.orderDetails}>
                     <Text style={styles.status}>
-                        Trạng thái: {orderData.state === 'new' ? 'Đang duyệt' : orderData.state}
+                        Trạng thái: {
+                            orderData.state === 'new' ? 'Đang duyệt' : 
+                            orderData.state === 'complete' ? 'Đã hoàn thành' : 
+                            orderData.state
+                        }
                     </Text>
                     <Text style={styles.datetime}>Thời gian: {orderData.datetime ? orderData.datetime.toDate().toLocaleString() : 'Không xác định'}</Text>
                     <Text style={styles.totalPrice}>Tổng tiền: {orderData.totalPrice}.000 vnđ</Text>
+                    <Text style={styles.totalPrice}>
+                        Thanh toán: {orderData.appointment === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                    </Text>
                     <Text style={styles.summaryTitle}>Tóm tắt đơn hàng:</Text>
                     {Array.isArray(orderData.services) ? (
                         orderData.services.map((service, index) => (
                             <View key={index} style={styles.serviceContainer}>
-                                <Text style={styles.serviceTitle}>{service.title} x {service.quantity}</Text>
-                                {/* {Array.isArray(service.options) && service.options.length > 0 ? (
-                                    <>
-                                        <Text style={styles.optionTitle}>Tùy chọn:</Text>
-                                        {service.options.map((option, optionIndex) => (
-                                            <Text key={optionIndex} style={styles.option}>{option.name} </Text>
-                                        ))}
-                                    </>
-                                ) : null} */}
+                                <View style={styles.serviceRow}>
+                                    <Text style={styles.serviceTitle}>{service.title} x{service.quantity}</Text>
+                                    <Text style={styles.serviceTitle}> {service.price} vnđ</Text>
+                                </View>
                             </View>
                         ))
                     ) : (
@@ -60,7 +62,7 @@ const OrderDetail = ({ route, navigation }) => {
             ) : (
                 <Text>Đang tải dữ liệu...</Text>
             )}
-            <Button mode="contained" onPress={() => navigation.navigate("PaymentZalo", { orderId: orderData.id })} style={styles.button}>Thanh toán</Button>
+            <Button mode="contained" onPress={() => navigation.navigate("PaymentZalo", { orderId: orderData.id })} style={styles.button}>Thanh toán online</Button>
         </View>
     );
 };
@@ -115,9 +117,18 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
         elevation: 1,
     },
+    serviceRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
     serviceTitle: {
         fontSize: 20, // Đặt kích thước chữ lớn hơn
         fontWeight: '500',
+    },
+    servicePrice: {
+        fontSize: 16,
+        color: '#555',
     },
     optionTitle: {
         fontSize: 14,

@@ -178,7 +178,7 @@ export default function PaymentOptionsScreen({route, navigation }) {
                 if (!querySnapshot.empty) {
                     // Update document đầu tiên tìm được
                     await querySnapshot.docs[0].ref.update({
-                        state: "complete"
+                      appointment: "paid"
                     });
                 }
             } catch (error) {
