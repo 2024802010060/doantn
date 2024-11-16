@@ -5,9 +5,7 @@ import { useMyContextProvider } from "../index";
 import Appointment from "../screens/Appointment";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Image, Text, TextInput} from "react-native";
-import ChangePassword from "../screens/ChangePassword";
-import Transaction from "../screens/Transaction";
-import PaymentOptionsScreen from "../screens/PaymentZalo";
+
 const Stack = createStackNavigator();
 
 const RouterServiceCustomer = ({ navigation }) => {
@@ -26,6 +24,7 @@ const RouterServiceCustomer = ({ navigation }) => {
                 },
                 headerRight: (props) => (
                     <TouchableOpacity onPress={() => navigation.navigate("ProfileCustomer")}>
+                      
                       <Image source={require('../assets/account.png')} style={{ width: 30, height: 30, margin: 20 }} />
                     </TouchableOpacity>
                   ),
@@ -34,10 +33,8 @@ const RouterServiceCustomer = ({ navigation }) => {
             <Stack.Screen 
             name="ServicesCustomer" 
             component={ServicesCustomer} 
-            
             options={{
                 headerLeft: null, 
-                
                 title: (userLogin != null) && (userLogin.fullName),
                 
             }} 
@@ -45,10 +42,10 @@ const RouterServiceCustomer = ({ navigation }) => {
             <Stack.Screen 
             name="Appointment" 
             component={Appointment} 
-            options={{title:"Đặt hàng" }}/>
-            
-            
-            
+            options={{
+                title: "Đặt hàng",
+                headerRight: null
+            }}/>
         </Stack.Navigator>
     )
 }

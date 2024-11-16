@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import firestore from '@react-native-firebase/firestore'; // Import Firebase
 
@@ -27,42 +27,79 @@ const OrderDetail = ({ route, navigation }) => {
 
         fetchOrderData();
     }, [order.id]);
-
+    //ham hien thi gia tien
+    const formatPrice = (price) => {
+        return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    };
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Chi tiết đơn hàng</Text>
-            {orderData ? (
-                <View style={styles.orderDetails}>
-                    <Text style={styles.status}>
-                        Trạng thái: {
-                            orderData.state === 'new' ? 'Đang duyệt' : 
-                            orderData.state === 'complete' ? 'Đã hoàn thành' : 
-                            orderData.state
-                        }
-                    </Text>
-                    <Text style={styles.datetime}>Thời gian: {orderData.datetime ? orderData.datetime.toDate().toLocaleString() : 'Không xác định'}</Text>
-                    <Text style={styles.totalPrice}>Tổng tiền: {orderData.totalPrice}.000 vnđ</Text>
-                    <Text style={styles.totalPrice}>
-                        Thanh toán: {orderData.appointment === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
-                    </Text>
-                    <Text style={styles.summaryTitle}>Tóm tắt đơn hàng:</Text>
-                    {Array.isArray(orderData.services) ? (
-                        orderData.services.map((service, index) => (
-                            <View key={index} style={styles.serviceContainer}>
-                                <View style={styles.serviceRow}>
-                                    <Text style={styles.serviceTitle}>{service.title} x{service.quantity}</Text>
-                                    <Text style={styles.serviceTitle}> {service.price} vnđ</Text>
-                                </View>
+            <View style={styles.card}>
+                <Text style={styles.title}>Chi tiết đơn hàng</Text>
+                {orderData ? (
+                    <View style={styles.orderDetails}>
+                        <View style={styles.statusBadge}>
+                            <Text style={styles.statusText}>
+                                {orderData.state === 'new' ? 'Đang duyệt' : 
+                                orderData.state === 'complete' ? 'Đã hoàn thành' : 
+                                orderData.state}
+                            </Text>
+                        </View>
+                        
+                        <View style={styles.infoSection}>
+                            <View style={styles.infoRow}>
+                                <Text style={styles.label}>Thời gian:</Text>
+                                <Text style={styles.value}>
+                                    {orderData.datetime ? orderData.datetime.toDate().toLocaleString() : 'Không xác định'}
+                                </Text>
                             </View>
-                        ))
-                    ) : (
-                        <Text style={{color: 'black'}}>Không xác định</Text>
-                    )}
-                </View>
-            ) : (
-                <Text>Đang tải dữ liệu...</Text>
-            )}
-            <Button mode="contained" onPress={() => navigation.navigate("PaymentZalo", { orderId: orderData.id })} style={styles.button}>Thanh toán online</Button>
+                            
+                            <View style={styles.divider} />
+
+                            <View style={styles.infoRow}>
+                                <Text style={styles.label}>Trạng thái thanh toán:</Text>
+                                <Text style={[
+                                    styles.value,
+                                    {color: orderData.appointment === 'paid' ? '#4CAF50' : '#FF5722'}
+                                ]}>
+                                    {orderData.appointment === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                                </Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.servicesCard}>
+                            <Text style={styles.sectionTitle}>Chi tiết dịch vụ</Text>
+                            {Array.isArray(orderData.services) && orderData.services.map((service, index) => (
+                                <View key={index} style={styles.serviceItem}>
+                                    <View style={styles.serviceRow}>
+                                        <View style={styles.serviceInfo}>
+                                            <Text style={styles.serviceName}>{service.title}</Text>
+                                            <Text style={styles.quantity}>x{service.quantity}</Text>
+                                        </View>
+                                        <Text style={styles.servicePrice}>{formatPrice(service.price)} vnđ</Text>
+                                    </View>
+                                    {index !== orderData.services.length - 1 && <View style={styles.itemDivider} />}
+                                </View>
+                            ))}
+                        </View>
+
+                        <View style={styles.totalSection}>
+                            <Text style={styles.totalLabel}>Tổng tiền</Text>
+                            <Text style={styles.totalAmount}>{formatPrice(orderData.totalPrice)} vnđ</Text>
+                        </View>
+
+                        <Button 
+                            mode="contained" 
+                            onPress={() => navigation.navigate("PaymentZalo", { orderId: orderData.id })}
+                            style={[styles.paymentButton, { backgroundColor: '#0068FF' }]}
+                            labelStyle={styles.buttonLabel}
+                        >
+                            Thanh toán bằng ZaloPay
+                        </Button>
+                    </View>
+                ) : (
+                    <ActivityIndicator size="large" color="#6200ee" />
+                )}
+            </View>
         </View>
     );
 };
@@ -72,74 +109,138 @@ export default OrderDetail;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
+        backgroundColor: '#f5f5f5',
+        padding: 16,
+    },
+    card: {
         backgroundColor: 'white',
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
-    },
-    orderDetails: {
-        
-    },
-    status: {
-        fontSize: 18,
-        fontWeight: '600',
-        marginBottom: 5,
-    },
-    datetime: {
-        fontSize: 16,
-        color: '#555',
-        marginBottom: 5,
-    },
-    totalPrice: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    },
-    summaryTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 10,
-    },
-    serviceContainer: {
-        marginBottom: 10,
-        padding: 10,
-        backgroundColor: '#fff',
-        borderRadius: 5,
+        borderRadius: 16,
+        padding: 20,
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
-            height: 1,
+            height: 2,
         },
         shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 1,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    title: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        marginBottom: 24,
+        color: '#1a1a1a',
+    },
+    statusBadge: {
+        backgroundColor: '#E3F2FD',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        alignSelf: 'flex-start',
+        marginBottom: 16,
+    },
+    statusText: {
+        fontSize: 16,
+        color: '#1976D2',
+        fontWeight: '600',
+    },
+    infoSection: {
+        backgroundColor: '#F8F9FA',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 24,
+    },
+    infoRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 8,
+    },
+    label: {
+        fontSize: 17,
+        color: '#666',
+        flex: 1,
+    },
+    value: {
+        fontSize: 17,
+        color: '#333',
+        fontWeight: '500',
+        flex: 2,
+        textAlign: 'right',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#E0E0E0',
+        marginVertical: 8,
+    },
+    servicesCard: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 24,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        marginBottom: 16,
+        color: '#1a1a1a',
+    },
+    serviceItem: {
+        marginBottom: 12,
     },
     serviceRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    serviceTitle: {
-        fontSize: 20, // Đặt kích thước chữ lớn hơn
-        fontWeight: '500',
+    serviceInfo: {
+        flex: 1,
+    },
+    serviceName: {
+        fontSize: 18,
+        color: '#333',
+        marginBottom: 4,
+    },
+    quantity: {
+        fontSize: 16,
+        color: '#666',
     },
     servicePrice: {
-        fontSize: 16,
-        color: '#555',
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#1a1a1a',
     },
-    optionTitle: {
-        fontSize: 14,
+    itemDivider: {
+        height: 1,
+        backgroundColor: '#F0F0F0',
+        marginVertical: 12,
+    },
+    totalSection: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 24,
+        paddingTop: 16,
+        borderTopWidth: 1,
+        borderTopColor: '#E0E0E0',
+    },
+    totalLabel: {
+        fontSize: 20,
+        fontWeight: '600',
+        color: '#1a1a1a',
+    },
+    totalAmount: {
+        fontSize: 28,
         fontWeight: 'bold',
-        marginTop: 5,
+        color: '#1976D2',
     },
-    option: {
-        fontSize: 14,
-        color: '#333',
+    paymentButton: {
+        borderRadius: 12,
+        paddingVertical: 8,
+        backgroundColor: '#6200ee',
     },
-    button: {
-        marginTop: 20,
+    buttonLabel: {
+        fontSize: 18,
+        fontWeight: '600',
     },
 });

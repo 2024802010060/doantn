@@ -20,9 +20,7 @@ const Login = ({ navigation }) => {
   }, [email, password, hasErrorEmail, hasErrorPassword]);
 
   const handleLogin = () => {
-    
     login(dispatch, email, password);
-    
   };
 
   useEffect(() => {
@@ -48,16 +46,16 @@ const Login = ({ navigation }) => {
                 }}
             />
             {/* Hàng gợi ý cho email */}
-      <TouchableOpacity onPress={() => setEmail('admin@gmail.com')} style={{ marginLeft: 40 }}>
+      {/* <TouchableOpacity onPress={() => setEmail('admin@gmail.com')} style={{ marginLeft: 40 }}>
         <Text style={{ color: 'blue', fontSize: 16 }}>admin@gmail.com</Text>
       </TouchableOpacity>
       <TouchableOpacity onPress={() => setEmail('d@gmail.com')} style={{ marginLeft: 40 }}>
         <Text style={{ color: 'blue', fontSize: 16 }}>d@gmail.com</Text>
       </TouchableOpacity>
       {/* Hàng gợi ý cho mật khẩu */}
-      <TouchableOpacity onPress={() => setPassword('123456')} style={{ marginLeft: 40 }}>
+      {/* <TouchableOpacity onPress={() => setPassword('123456')} style={{ marginLeft: 40 }}>
         <Text style={{ color: 'blue', fontSize: 16 }}>123456</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
       <TextInput
         label={"Email"}
         value={email} // Đặt giá trị ban đầu là d@gmail.com

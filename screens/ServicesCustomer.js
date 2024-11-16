@@ -11,8 +11,8 @@ const ServicesCustomer = ({ navigation, route }) => {
     
     const [initialServices, setInitialServices] = useState([]);
     const [services, setServices] = useState([]);
-    const [opi, setOpi] = useState([]);
     const [categories, setCategories] = useState([]); // State to hold categories
+    const [randomServices, setRandomServices] = useState([]); // Thêm state mới
 
     const filterByCategory = (category) => {
         if (category === 'all') {
@@ -36,12 +36,19 @@ const ServicesCustomer = ({ navigation, route }) => {
                     });
                 });
                 setServices(services);
-                setOpi(services);
                 setInitialServices(services);
+                
+                // Lấy 3 sản phẩm ngẫu nhiên
+                const shuffled = [...services].sort(() => 0.5 - Math.random());
+                setRandomServices(shuffled.slice(0, 3));
             });
 
         return () => unsubscribe();
     }, []);
+    //ham hien thi gia tien
+    const formatPrice = (price) => {
+        return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    };
 
     const [name, setName] = useState('')
     const renderItem = ({ item }) => (
@@ -59,7 +66,7 @@ const ServicesCustomer = ({ navigation, route }) => {
                 </View>
                 <View style={{ height: 100, width: 230, marginTop: 5 }}>
                     <Text style={{ fontSize: 18, fontWeight: "bold", paddingTop: 5 }}>{item.title}</Text>
-                    <Text style={{ fontSize: 18, fontWeight: "bold", paddingTop: 5 }}>Giá: {item.price} vnđ</Text>
+                    <Text style={{ fontSize: 18, fontWeight: "bold", paddingTop: 5 }}>Giá:{formatPrice(item.price)} VNĐ</Text>
                 </View>
             </TouchableOpacity>
             
@@ -80,7 +87,7 @@ const ServicesCustomer = ({ navigation, route }) => {
             </View>
             <View >
                 <Text style={{fontSize: 18, fontWeight: "bold",paddingLeft:10}}>{item.title}</Text>
-                <Text style={{fontSize: 18, fontWeight: "bold",paddingLeft:10}}>{item.price} vnđ</Text>
+                <Text style={{fontSize: 18, fontWeight: "bold",paddingLeft:10}}>Giá:{formatPrice(item.price)} VNĐ</Text>
             </View>
         </TouchableOpacity>
     );
@@ -209,10 +216,10 @@ const ServicesCustomer = ({ navigation, route }) => {
                     alignItems: "left",
                     color:'red'
                 }}>
-                    Bán chạy</Text>
+                    Đề xuất cho bạn</Text>
                 </View>
                 <FlatList
-                data={opi}
+                data={randomServices}
                 showsHorizontalScrollIndicator={false}
                 renderItem={randomitem}
                 keyExtractor={item => item.id}
@@ -256,12 +263,14 @@ const styles = StyleSheet.create({
     },
     
     imagerandom: {
-        width:150,
-        height:100,
-        borderRadius:15
+        width: 152,
+        height: 98,
+        borderRadius: 13,
+        borderWidth: 0.5,
+        borderColor: 'black',
     },
     borderrandom:{
-        width: 152,
+        width: 155,
         height: 160,
         margin: 10,
         borderRadius: 15,
@@ -269,17 +278,19 @@ const styles = StyleSheet.create({
         borderColor: 'black',
     },
     viewrandom: {
-        width: 150,
-        height: 100, // Điều chỉnh chiều cao để phù hợp với tỷ lệ hình ảnh
+        width: 153,
+        height: 100,
         borderRadius: 15,
-        backgroundColor:'white',
+        backgroundColor: 'white',
         justifyContent: 'center',
         alignItems: 'center',
+        overflow: 'hidden',
     },
     imagerender: {
         width:150,
         height:100,
         borderRadius: 15,
+        
     },
     borderender:{
         flexDirection: "row",

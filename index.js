@@ -51,26 +51,28 @@ function useMyContextProvider() {
 const USERS = firestore().collection("USERS");
 
 // Action
-const createAccount = (email, password, fullName, phone, address, role) => {
-    auth().createUserWithEmailAndPassword(email, password, fullName, phone, address, role)
-    .then(() => {
-        Alert.alert("Tạo tài khoản thành công với email là: " + email);
-        USERS.doc(email)
-        .set({
+const createAccount = async (email, password, fullName, phone, address, role, navigation) => {
+    try {
+        await auth().createUserWithEmailAndPassword(email, password);
+        await USERS.doc(email).set({
             email,
             password,
             fullName,
             phone,
             address,
             role: "customer"
-        })
-        .catch(error => {
-            throw new Error("Lỗi thêm dữ liệu tài khoản: ", error);
         });
-    })
-    .catch(error => {
-        throw new Error("Lỗi tạo tài khoản: ", error);
-    });
+        
+        Alert.alert(
+            "Thành công",
+            "Tạo tài khoản thành công với email là: " + email,
+            [
+                { text: "OK", onPress: () => navigation.navigate("Login") }
+            ]
+        );
+    } catch (error) {
+        Alert.alert("Lỗi", "Không thể tạo tài khoản: " + error.message);
+    }
 };
 
 const createnewservice = (email, password, fullName, phone, address, role) => {

@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { View, FlatList,StyleSheet, Image, TouchableOpacity } from "react-native";
+import { View, FlatList,StyleSheet } from "react-native";
 import { Text,Card,Title,Paragraph,IconButton, Button } from "react-native-paper";
 import firestore from '@react-native-firebase/firestore';
+import { Menu, MenuTrigger, MenuOptions, MenuOption } from 'react-native-popup-menu';
 import { useMyContextProvider } from "../index";
+import { useNavigation } from '@react-navigation/native'; // Thêm import này
 
 
-const Transaction = ({navigation, route }) => {
+const Transaction = () => {
     const [appointments, setAppointments] = useState([]);
-    const [sortOrder, setSortOrder] = useState('desc'); // 'desc' for newest first, 'asc' for oldest first
-    const [controller, dispatch] = useMyContextProvider();
+    const [services, setServices] = useState([]); // State để lưu dịch vụ
+    const [controller] = useMyContextProvider();
     const { userLogin } = controller;
-    const [services, setServices] = useState([]);
+    const navigation = useNavigation(); // Khởi tạo navigation
 
     useEffect(() => {
         const unsubscribe = firestore()
             .collection('Appointments')
             .where('email', '==', userLogin.email)
-            .where('state', '==', 'complete')  // Only fetch 'new' appointments
+            .where('state', '==', 'complete')
             .onSnapshot(querySnapshot => {
                 const appointmentsData = [];
                 querySnapshot.forEach(documentSnapshot => {
@@ -25,66 +27,62 @@ const Transaction = ({navigation, route }) => {
                         id: documentSnapshot.id,
                     });
                 });
-                sortAppointments(appointmentsData);
+
+                // Sắp xếp theo thời gian, đơn hàng mới nhất ở trên cùng
+                appointmentsData.sort((a, b) => b.datetime.toDate() - a.datetime.toDate());
+                setAppointments(appointmentsData);
             });
             
         return () => unsubscribe();
     }, []);
     
-    const sortAppointments = (data) => {
-        const sorted = data.sort((a, b) => {
-            const dateA = a.datetime ? a.datetime.toDate() : new Date(0);
-            const dateB = b.datetime ? b.datetime.toDate() : new Date(0);
-            return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-        });
-        setAppointments([...sorted]); // Create a new array to trigger re-render
-    };
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                const servicesCollection = await firestore().collection('services').get();
+                const servicesData = servicesCollection.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setServices(servicesData);
+            } catch (error) {
+                console.error("Lỗi khi lấy dịch vụ: ", error);
+            }
+        };
 
-    const toggleSortOrder = () => {
-        const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
-        setSortOrder(newOrder);
-        sortAppointments(appointments);
-    };
+        fetchServices();
+    }, []);
 
     // show các lịch
-    const renderItem = ({ item }) => (
-        <Card style={styles.card}>
-            <Card.Content>
-                <Title style={styles.text}>Mã xác nhận: {item.id}{item.id}</Title>
-                <Paragraph style={styles.text}>Người đặt: {item.email}</Paragraph>
-                <Paragraph style={styles.text}>Thời gian đặt: {item.datetime ? (() => {
-                    const date = item.datetime.toDate();
-                    const timeString = date.toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false
-                    });
-                    const dateString = date.toLocaleDateString('vi-VN', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                    return `${timeString} | ${dateString}`;
-                })() : 'Không xác định'}</Paragraph>
-                    <Paragraph style={styles.text}>Sản phẩm: {item.service}</Paragraph>
-                    <Paragraph style={styles.text}>Giá: {item.price} vnđ </Paragraph>
-                    <Paragraph style={styles.text}>Liên hệ: {item.phone}</Paragraph>
-                    <Paragraph style={styles.text}>Trạng thái: {item.state}</Paragraph>
-            </Card.Content>
-            
-        </Card>
-        
-    );
-    const handletransaction = () =>{
-        navigation.navigate("Transaction")
-    }
+    const renderItem = ({ item }) => {
+        const service = services.find(s => s.id === item.serviceId); // Tìm dịch vụ tương ứng với item
+        return (
+            <Card style={styles.card}>
+                <Card.Content>
+                    <Paragraph style={[styles.text, 
+                        item.state === 'new' ? styles.redText : 
+                        item.state === 'completed' ? styles.greenText : 
+                        styles.defaultText
+                    ]}>
+                        Trạng thái: {item.state === 'new' ? 'Đang duyệt' : 'Đã hoàn thành'}
+                    </Paragraph>
+                    <Paragraph style={styles.text}>Thời gian: {item.datetime ? item.datetime.toDate().toLocaleString() : 'Không xác định'}</Paragraph>
+                    <Paragraph style={styles.text}>Mã đơn hàng: {item.id.split('_').pop()}</Paragraph>
+                    <Paragraph style={styles.text}>
+                        Tổng tiền: {item.totalPrice.toLocaleString('vi-VN')}.000 vnđ
+                    </Paragraph>
+                    
+                    {service && <Paragraph style={styles.text}>Dịch vụ: {service.name}</Paragraph>} 
+                    <Button onPress={() => navigation.navigate('OrderDetail', { order: item })}>Xem chi tiết</Button>
+                </Card.Content>
+            </Card>
+        );
+    };
+    
+    const handleOrderDetail = (orderId) => {
+        navigation.navigate("OrderDetail", { orderId });
+    };
+
     return (
         <View style={{ flex: 1 , backgroundColor:"white"}}>
             
-            <Button onPress={toggleSortOrder} style={styles.sortButton}>
-                {sortOrder === 'desc' ? "Sắp xếp: Đơn mới nhất" : "Sắp xếp: Đơn cũ nhất "}
-            </Button>
             <FlatList
                 data={appointments}
                 renderItem={renderItem}
@@ -94,18 +92,36 @@ const Transaction = ({navigation, route }) => {
     )
 }
 
+export default Transaction;
 const styles = StyleSheet.create({
     text: {
-        fontSize: 17, fontWeight: "bold"
+        fontSize: 17, 
+        fontWeight: "bold",
+        paddingVertical: 5, // Thêm padding dọc để tránh bị mất phần trên
+    },
+    redText: { // Màu đỏ cho trạng thái "Đang giao"
+        color: 'black',
+        fontSize: 26, // Kích thước lớn hơn
+        fontWeight: "bold",
+    },
+    greenText: { // Màu xanh lá cho trạng thái "Đã hoàn thành"
+        color: 'green',
+        fontSize: 26, // Kích thước lớn hơn
+        fontWeight: "bold",
+    },
+    defaultText: { // Màu mặc định cho các trạng thái khác
+        color: 'black',
+        fontSize: 26, // Kích thước lớn hơn
+        fontWeight: "bold",
+    },
+    largeText: { // Thêm kiểu dáng cho trạng thái "Đang giao"
+        fontSize: 22, // Kích thước lớn hơn
+        fontWeight: "bold",
     },
     card: {
         margin: 10,
         borderRadius: 8,
         elevation: 3,
-        backgroundColor: '#66FF66',
-    },
-    sortButton: {
-        margin: 10,
+        backgroundColor: '#E0EEE0',
     },
 });
-export default Transaction;

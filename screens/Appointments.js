@@ -49,30 +49,49 @@ const Appointments = () => {
 
         fetchServices();
     }, []);
-
+    //ham hien thi gia tien
+    const formatPrice = (price) => {
+        return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    };
     // show các lịch
     const renderItem = ({ item }) => {
-        const service = services.find(s => s.id === item.serviceId); // Tìm dịch vụ tương ứng với item
+        const service = services.find(s => s.id === item.serviceId);
         return (
             <Card style={styles.card}>
                 <Card.Content>
-                    <Paragraph style={[styles.text, 
-                        item.state === 'new' ? styles.redText : 
-                        item.state === 'completed' ? styles.greenText : 
-                        styles.defaultText
-                    ]}>
-                        Trạng thái: {item.state === 'new' ? 'Đang duyệt' : 'Đã hoàn thành'}
-                    </Paragraph>
-                    <Paragraph style={styles.text}>Thời gian: {item.datetime ? item.datetime.toDate().toLocaleString() : 'Không xác định'}</Paragraph>
-                    <Paragraph style={styles.text}>Mã đơn hàng: {item.id.split('_').pop()}</Paragraph>
-                    <Paragraph style={styles.text}>
-                        Tổng tiền: {item.totalPrice.toLocaleString('vi-VN')}.000 vnđ
-                    </Paragraph>
-                    <Paragraph style={styles.text}>
-                        Người đặt: {userLogin?.email || 'Không có'}
-                    </Paragraph>
-                    {service && <Paragraph style={styles.text}>Dịch vụ: {service.name}</Paragraph>} 
-                    <Button onPress={() => navigation.navigate('OrderDetail', { order: item })}>Xem chi tiết</Button>
+                    <View style={styles.orderHeader}>
+                        <View style={styles.statusBadge}>
+                            <Text style={styles.statusText}>
+                                {item.state === 'new' ? 'Đang duyệt' : 'Đã hoàn thành'}
+                            </Text>
+                        </View>
+                        <Text style={styles.orderIdText}>
+                            Mã đơn: {item.id.split('_').pop()}
+                        </Text>
+                    </View>
+
+                    <Text style={styles.priceText}>
+                        {formatPrice(item.totalPrice)} VNĐ
+                    </Text>
+
+                    <Text style={styles.dateText}>
+                        {item.datetime ? item.datetime.toDate().toLocaleString() : 'Không xác định'}
+                    </Text>
+
+                    {service && (
+                        <Text style={styles.dateText}>
+                            Dịch vụ: {service.name}
+                        </Text>
+                    )}
+
+                    <Button 
+                        mode="contained"
+                        style={styles.detailButton}
+                        labelStyle={styles.detailButtonLabel}
+                        onPress={() => navigation.navigate('OrderDetail', { order: item })}
+                    >
+                        Xem chi tiết
+                    </Button>
                 </Card.Content>
             </Card>
         );
@@ -96,34 +115,62 @@ const Appointments = () => {
 
 export default Appointments;
 const styles = StyleSheet.create({
-    text: {
-        fontSize: 17, 
-        fontWeight: "bold",
-        paddingVertical: 5, // Thêm padding dọc để tránh bị mất phần trên
-    },
-    redText: { // Màu đỏ cho trạng thái "Đang giao"
-        color: 'black',
-        fontSize: 26, // Kích thước lớn hơn
-        fontWeight: "bold",
-    },
-    greenText: { // Màu xanh lá cho trạng thái "Đã hoàn thành"
-        color: 'green',
-        fontSize: 26, // Kích thước lớn hơn
-        fontWeight: "bold",
-    },
-    defaultText: { // Màu mặc định cho các trạng thái khác
-        color: 'black',
-        fontSize: 26, // Kích thước lớn hơn
-        fontWeight: "bold",
-    },
-    largeText: { // Thêm kiểu dáng cho trạng thái "Đang giao"
-        fontSize: 22, // Kích thước lớn hơn
-        fontWeight: "bold",
-    },
     card: {
         margin: 10,
+        borderRadius: 15,
+        elevation: 4,
+        backgroundColor: '#FFFFFF',
+        borderLeftWidth: 5,
+        borderLeftColor: '#FFA500', // Màu cam cho trạng thái "Đang duyệt"
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+    },
+    orderHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    statusBadge: {
+        backgroundColor: '#FFF3E0',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        alignSelf: 'flex-start',
+    },
+    statusText: {
+        color: '#FFA500',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    orderIdText: {
+        fontSize: 14,
+        color: '#666666',
+    },
+    priceText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#2E2E2E',
+        marginTop: 8,
+    },
+    dateText: {
+        fontSize: 14,
+        color: '#666666',
+        marginTop: 4,
+    },
+    detailButton: {
+        marginTop: 10,
+        backgroundColor: '#FF9800',
         borderRadius: 8,
-        elevation: 3,
-        backgroundColor: '#E0EEE0',
+    },
+    detailButtonLabel: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '600',
     },
 });

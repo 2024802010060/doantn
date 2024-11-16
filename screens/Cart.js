@@ -26,6 +26,10 @@ const Cart = () => {
     console.log("Cart context:", { cart, removeFromCart, clearCart, updateQuantity });
   }, []);
 
+  const formatPrice = (price) => {
+    return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
   const renderItem = ({ item }) => (
       <View style={styles.item}>
         <Text style={{width: '30%', color: 'gray'}}>{item.title}</Text>
@@ -39,8 +43,8 @@ const Cart = () => {
         </TouchableOpacity>
         </View>
         <Text style={{ color: 'gray' }}>
-          Giá: {item.price * item.quantity}
-          <Text style={styles.fadedText}> .000 VNĐ</Text> {/* Faded text */}
+          Giá: {formatPrice(item.price * item.quantity)}
+          <Text style={styles.fadedText}> VNĐ</Text> {/* Faded text */}
         </Text>
         <TouchableOpacity onPress={() => removeFromCart(item.id)}>
           <Text style={styles.removeButton}>Xóa</Text>
@@ -130,7 +134,7 @@ const Cart = () => {
       />
       <View style={styles.bottomContainer}>
         
-        <Text style={styles.total}>Tổng cộng: {total}.000 VNĐ</Text>
+        <Text style={styles.total}>Tổng cộng: {formatPrice(total)} VNĐ</Text>
         <Button 
           style={styles.bookButton} 
           textColor="black" 

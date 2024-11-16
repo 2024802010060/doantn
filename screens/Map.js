@@ -10,6 +10,8 @@ const GEOAPIFY_API_KEY = 'be8283f0ca404169924653620c942bfa';
 const GOOGLE_MAPS_API_KEY = 'AIzaSyAY147ZFhEL1fg7jQ-CdrK-sncScdCucG4'; // Thêm Google Maps API key của bạn
 
 const Map = () => {
+  const [controller] = useMyContextProvider();
+  const { userLogin } = controller;
   const [currentPosition, setCurrentPosition] = useState(null);
   const [address, setAddress] = useState('');
   const [destination, setDestination] = useState(null);
@@ -19,10 +21,9 @@ const Map = () => {
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const route = useRoute();
-  const { cartItems = [], totalAmount = 0, userInfo = {}, discountValue = 0 } = route.params || {};
   const navigation = useNavigation();
-  const [controller] = useMyContextProvider();
-  const { userLogin } = controller;
+  
+
   const getCoordinatesFromAddress = async (address) => {
     try {
       if (!address.trim()) {
@@ -317,21 +318,50 @@ const Map = () => {
       return;
     }
 
-    // Kiểm tra xem address có hợp lệ không
     if (!address.trim()) {
       Alert.alert('Thông báo', 'Địa chỉ không hợp lệ');
       return;
     }
+    
+    if (userLogin == null) {
+      Alert.alert(
+        'Thông báo', 
+        'Bạn phải đăng nhập để xác nhận vị trí',
+        [
+          {
+            text: 'Trở lại',
+            onPress: () => navigation.goBack(),
+            style: 'cancel',
+          },
+          {
+            text: 'Đăng nhập',
+            onPress: () => navigation.navigate('Login'),
+          },
+        ]
+      );
+      return;
+    }
 
     try {
+      const userEmail = userLogin.email.toLowerCase();
+      
       await firestore()
-          .collection('User')
-          .doc(userLogin.email)
-          .update({
-              address: address
-          });
+        .collection('USERS')
+        .doc(userEmail)
+        .update({
+          address: address,
+          userAddress: userLogin.address
+        });
+      
+      Alert.alert('Thành công', 'Đã cập nhật địa chỉ thành công', [
+        {
+          text: 'OK',
+          onPress: () => navigation.navigate('RouterServiceCustomer')
+        }
+      ]);
     } catch (error) {
-      console.error("Lỗi khi cập nhật dịch vụ:", error);
+      console.error("Lỗi khi cập nhật địa chỉ:", error);
+      Alert.alert('Lỗi', 'Không thể cập nhật địa chỉ. Vui lòng thử lại.');
     }
   };
 

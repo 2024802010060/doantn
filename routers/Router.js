@@ -17,8 +17,8 @@ const Router = () =>{
             }}
         >
             <Stack.Screen name="Login" component={Login}/>
-            <Stack.Screen name="Admin" component={Admin}/>
             <Stack.Screen name="Customer" component={Customer}/>
+            <Stack.Screen name="Admin" component={Admin}/>
             <Stack.Screen name="Register" component={Register}/>
             <Stack.Screen name="ForgotPassword" component={ForgotPassword}/>
             

@@ -27,11 +27,15 @@ const Services = ({ navigation }) => {
         return () => unsubscribe();
     }, []);
 
+    const formatPrice = (price) => {
+        return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    };
+
     const renderItem = ({ item }) => (
         <TouchableOpacity onPress={() => handleAppointment(item)} style={{ margin: 10,padding: 15, borderRadius: 15, marginVertical: 5, backgroundColor: '#e0e0e0' }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 20 }}>
                 <Text style={{fontSize: 18, fontWeight: "bold"}}>{item.title}</Text>
-                <Text style={{fontSize: 18, fontWeight: "bold"}}>{item.price}</Text>
+                <Text style={{fontSize: 18, fontWeight: "bold"}}>{formatPrice(item.price)}</Text>
             </View>
         </TouchableOpacity>
     );

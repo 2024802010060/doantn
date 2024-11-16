@@ -34,6 +34,7 @@ const Register = ({ navigation }) => {
 
   const handleRegister = () => {
     createAccount(email, password, fullName, phone, address, role);
+    navigation.navigate("Login");
   };
 
   return (
