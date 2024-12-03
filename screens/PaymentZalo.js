@@ -57,25 +57,24 @@ export default function PaymentOptionsScreen({route, navigation }) {
     const services = cart.map(item => ({
       title: item.title,
       quantity: item.quantity,
-      
     }));
 
-    const totalAmount = orderData ? orderData.totalPrice * 1000 : 0;
+    const totalAmount = orderData ? orderData.totalPrice : 0;
 
-    APPOINTMENTs.add({
+    APPOINTMENTs.doc(orderId).set({
       email: userLogin.email,
       fullName: userLogin.fullName,
       services: orderData.services,
       totalPrice: totalAmount,
       phone: userLogin.phone,
-      address: userLogin.address, // Add the user's address here
+      address: userLogin.address,
       datetime: new Date(),
       state: "pending",
       paymentMethod: "ZaloPay",
-      transactionId: app_trans_id
-    }).then(docRef => {
-      APPOINTMENTs.doc(docRef.id).update({ id: docRef.id });
-      console.log("Order added to Firebase with ID: ", docRef.id);
+      transactionId: app_trans_id,
+      id: orderId
+    }).then(() => {
+      console.log("Order added to Firebase with ID: ", orderId);
       
       // Proceed with ZaloPay payment process
       initiateZaloPayment(app_trans_id, totalAmount);
@@ -205,6 +204,7 @@ export default function PaymentOptionsScreen({route, navigation }) {
 
   return (
     <View style={styles.container}>
+      
       <Text style={styles.title}>Chọn phương thức thanh toán</Text>
       <TouchableOpacity style={styles.button} onPress={handlePayment}>
         <Text style={styles.buttonText}>Thanh toán với ZaloPay</Text>

@@ -15,15 +15,12 @@ const Map = () => {
   const [currentPosition, setCurrentPosition] = useState(null);
   const [address, setAddress] = useState('');
   const [destination, setDestination] = useState(null);
-  const [routeCoordinates, setRouteCoordinates] = useState([]);
   const mapRef = useRef(null);
-  const [storeLocations, setStoreLocations] = useState([]);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const route = useRoute();
   const navigation = useNavigation();
   
-
   const getCoordinatesFromAddress = async (address) => {
     try {
       if (!address.trim()) {
@@ -44,19 +41,15 @@ const Map = () => {
       if (data.features && data.features.length > 0) {
         const [longitude, latitude] = data.features[0].geometry.coordinates;
         setCurrentPosition({ latitude, longitude });
+        setShowSuggestions(false);
 
-        const addressData = data.features[0].properties;
-        const formattedAddress = [
-          addressData.housenumber,
-          addressData.street,
-          addressData.district,
-          addressData.city,
-          addressData.country
-        ].filter(Boolean).join(', ');
-        
-        setAddress(formattedAddress);
-        console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
-        console.log(`Address: ${formattedAddress}`);
+        // Di chuyển map đến vị trí mới
+        mapRef.current?.animateToRegion({
+          latitude,
+          longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }, 1000);
       } else {
         Alert.alert('Error', 'Không tìm thấy địa chỉ. Vui lòng thử lại với địa chỉ khác.');
       }
@@ -91,9 +84,33 @@ const Map = () => {
 
     const getCurrentPosition = () => {
       Geolocation.getCurrentPosition(
-        (position) => {
+        async (position) => {
           const { latitude, longitude } = position.coords;
           setCurrentPosition({ latitude, longitude });
+
+          // Chuyển đổi tọa độ thành địa chỉ
+          try {
+            const response = await fetch(
+              `https://api.geoapify.com/v1/geocode/reverse?lat=${latitude}&lon=${longitude}&apiKey=${GEOAPIFY_API_KEY}&lang=vi`
+            );
+            const data = await response.json();
+            
+            if (data.features && data.features.length > 0) {
+              const addressData = data.features[0].properties;
+              const formattedAddress = [
+                addressData.housenumber,
+                addressData.street,
+                addressData.district,
+                addressData.city,
+                addressData.country
+              ].filter(Boolean).join(', ');
+              
+              setAddress(formattedAddress);
+            }
+          } catch (error) {
+            console.error('Error getting address:', error);
+            Alert.alert('Error', 'Không thể lấy địa chỉ. Vui lòng thử lại.');
+          }
         },
         (error) => {
           console.log(error);
@@ -117,61 +134,15 @@ const Map = () => {
     }
   }, [currentPosition]);
 
-  // Thêm hàm tính khoảng cách giữa 2 điểm
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Bán kính trái đất tính bằng km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c; // Khoảng cách tính bằng km
-  };
 
   // Sửa lại hàm handleMapPress
   const handleMapPress = async (event) => {
     const { coordinate } = event.nativeEvent;
+    
+    // Đặt marker tại vị trí được chọn
     setCurrentPosition(coordinate);
     
-    // Tìm cơ sở gần nhất
-    let nearestStore = null;
-    let shortestDistance = Infinity;
-    
-    storeLocations.forEach(store => {
-      const distance = calculateDistance(
-        coordinate.latitude,
-        coordinate.longitude,
-        parseFloat(store.latitude),
-        parseFloat(store.longitude)
-      );
-      
-      if (distance < shortestDistance) {
-        shortestDistance = distance;
-        nearestStore = store;
-      }
-    });
-
-    if (nearestStore) {
-      const storeCoordinate = {
-        latitude: parseFloat(nearestStore.latitude),
-        longitude: parseFloat(nearestStore.longitude)
-      };
-      setDestination(storeCoordinate);
-      
-      // Lấy và vẽ đường đi
-      const route = await getRouteFromGeoapify(coordinate, storeCoordinate);
-      setRouteCoordinates(route);
-      
-      // Hiển thị thông tin
-      Alert.alert(
-        'Cơ sở gần nhất',
-        `${nearestStore.name}\n${nearestStore.address}\nKhoảng cách: ${shortestDistance.toFixed(2)} km`
-      );
-    }
-
-    // Chuyển đổi tọa độ thành địa chỉ cho điểm xuất phát
+    // Chuyển đổi tọa độ thành địa chỉ
     try {
       const response = await fetch(
         `https://api.geoapify.com/v1/geocode/reverse?lat=${coordinate.latitude}&lon=${coordinate.longitude}&apiKey=${GEOAPIFY_API_KEY}&lang=vi`
@@ -188,7 +159,19 @@ const Map = () => {
           addressData.country
         ].filter(Boolean).join(', ');
         
+        // Cập nhật địa chỉ trong TextInput
         setAddress(formattedAddress);
+        
+        // Ẩn gợi ý địa chỉ nếu đang hiển thị
+        setShowSuggestions(false);
+        
+        // Tùy chọn: Di chuyển map đến vị trí được chọn
+        mapRef.current?.animateToRegion({
+          latitude: coordinate.latitude,
+          longitude: coordinate.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }, 1000);
       }
     } catch (error) {
       console.error('Error getting address:', error);
@@ -196,69 +179,35 @@ const Map = () => {
     }
   };
 
-  const getRouteFromGeoapify = async (start, end) => {
-    try {
-      const response = await fetch(
-        `https://api.geoapify.com/v1/routing?waypoints=${start.latitude},${start.longitude}|${end.latitude},${end.longitude}&mode=drive&apiKey=${GEOAPIFY_API_KEY}`
-      );
-      
-      const data = await response.json();
-      
-      if (data.features && data.features.length > 0) {
-        // Chuyển đổi coordinates từ Geoapify ([lon, lat]) sang định dạng của React Native Maps (latitude, longitude)
-        const routeCoordinates = data.features[0].geometry.coordinates[0].map(point => ({
-          latitude: point[1],
-          longitude: point[0]
-        }));
-        
-        // Vẽ đường đi bằng Polyline
-        return routeCoordinates;
-      }
-    } catch (error) {
-      console.error('Error getting route:', error);
-      Alert.alert('Error', 'Không thể lấy đường đi. Vui lòng thử lại.');
-    }
-  };
-
-  useEffect(() => {
-    const fetchStoreLocations = async () => {
-      try {
-        const snapshot = await firestore()
-          .collection('base')
-          .get();
-        
-        const locations = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
-        setStoreLocations(locations);
-      } catch (error) {
-        console.error('Error fetching store locations:', error);
-        Alert.alert('Error', 'Không thể lấy dữ liệu cửa hàng từ database');
-      }
-    };
-
-    fetchStoreLocations();
-  }, []);
-
   const getAddressSuggestions = async (text) => {
     try {
       setAddress(text);
-      if (text.length < 3) { // Chỉ tìm kiếm khi có ít nhất 3 ký tự
+      if (text.length < 2) {
         setAddressSuggestions([]);
         setShowSuggestions(false);
         return;
       }
 
       const response = await fetch(
-        `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(text)}&format=json&apiKey=${GEOAPIFY_API_KEY}&lang=vi&filter=countrycode:vn`
+        `https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(text)}&format=json&apiKey=${GEOAPIFY_API_KEY}&lang=vi&filter=countrycode:vn&bias=countrycode:vn&limit=10`
       );
       
       const data = await response.json();
       
       if (data.results) {
-        setAddressSuggestions(data.results);
+        // Xử lý và format địa chỉ trước khi hiển thị gợi ý
+        const formattedSuggestions = data.results.map(result => ({
+          ...result,
+          formatted: [
+            result.housenumber,
+            result.street,
+            result.district,
+            result.city,
+            result.country
+          ].filter(Boolean).join(', ')
+        }));
+        
+        setAddressSuggestions(formattedSuggestions);
         setShowSuggestions(true);
       }
     } catch (error) {
@@ -273,43 +222,18 @@ const Map = () => {
       longitude: lon
     };
     
+    // Tạo địa chỉ đầy đủ từ các thành phần
+    const fullAddress = [
+      suggestion.housenumber,
+      suggestion.street,
+      suggestion.district,
+      suggestion.city,
+      suggestion.country
+    ].filter(Boolean).join(', ');
+    
     setCurrentPosition(selectedPosition);
-    setAddress(suggestion.formatted);
+    setAddress(fullAddress);
     setShowSuggestions(false);
-    
-    // Tìm cơ sở gần nhất từ vị trí đã chọn
-    let nearestStore = null;
-    let shortestDistance = Infinity;
-    
-    storeLocations.forEach(store => {
-      const distance = calculateDistance(
-        lat,
-        lon,
-        parseFloat(store.latitude),
-        parseFloat(store.longitude)
-      );
-      
-      if (distance < shortestDistance) {
-        shortestDistance = distance;
-        nearestStore = store;
-      }
-    });
-
-    if (nearestStore) {
-      const storeCoordinate = {
-        latitude: parseFloat(nearestStore.latitude),
-        longitude: parseFloat(nearestStore.longitude)
-      };
-      setDestination(storeCoordinate);
-      
-      const route = await getRouteFromGeoapify(selectedPosition, storeCoordinate);
-      setRouteCoordinates(route);
-      
-      Alert.alert(
-        'Cơ sở gần nhất',
-        `${nearestStore.name}\n${nearestStore.address}\nKhoảng cách: ${shortestDistance.toFixed(2)} km`
-      );
-    }
   };
 
   const handleOrder = async () => {
@@ -317,7 +241,6 @@ const Map = () => {
       Alert.alert('Thông báo', 'Vui lòng chọn địa chỉ trước khi xác nhận');
       return;
     }
-
     if (!address.trim()) {
       Alert.alert('Thông báo', 'Địa chỉ không hợp lệ');
       return;
@@ -350,9 +273,8 @@ const Map = () => {
         .doc(userEmail)
         .update({
           address: address,
-          userAddress: userLogin.address
         });
-      
+        
       Alert.alert('Thành công', 'Đã cập nhật địa chỉ thành công', [
         {
           text: 'OK',
@@ -364,6 +286,25 @@ const Map = () => {
       Alert.alert('Lỗi', 'Không thể cập nhật địa chỉ. Vui lòng thử lại.');
     }
   };
+//602 đường nguyễn văn trỗi phường hiệp thành thủ dầu một bình dương việt nam
+
+  const formatAddress = (addressData) => {
+    // Ưu tiên lấy thông tin chi tiết nếu có
+    const detailedAddress = [
+      addressData.housenumber,
+      addressData.street,
+      addressData.district,
+      addressData.city,
+      addressData.country
+    ].filter(Boolean);
+
+    // Nếu không có thông tin chi tiết, lấy thông tin từ formatted_address
+    if (detailedAddress.length <= 2) { // Chỉ có city và country
+      return addressData.formatted_address || addressData.formatted;
+    }
+
+    return detailedAddress.join(', ');
+  };
 
   return (
     <View style={{ 
@@ -371,19 +312,50 @@ const Map = () => {
       backgroundColor: 'white',
     }}>
       <View style={{ margin: 10 }}>
-        <TextInput
-          style={{
-            height: 40,
-            borderColor: 'gray',
-            borderWidth: 1,
-            paddingLeft: 8,
-            marginBottom: showSuggestions ? 0 : 10,
-            borderRadius: 5
-          }}
-          placeholder="Nhập địa chỉ"
-          value={address}
-          onChangeText={(text) => getAddressSuggestions(text)}
-        />
+        <View style={{ 
+          flexDirection: 'row', 
+          alignItems: 'center',
+          borderColor: 'gray',
+          borderWidth: 1,
+          borderRadius: 5,
+          marginBottom: showSuggestions ? 0 : 10,
+        }}>
+          <TextInput
+            style={{
+              height: 40,
+              flex: 1,
+              paddingLeft: 8,
+              color: 'black'
+            }}
+            placeholder="Nhập địa chỉ"
+            value={address}
+            onChangeText={(text) => getAddressSuggestions(text)}
+            onFocus={() => {
+              // Hiện lại đề xuất khi focus vào TextInput và có text
+              if (address.length >= 2) {
+                setShowSuggestions(true);
+              }
+            }}
+          />
+          {address.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => {
+                setAddress('');
+                setAddressSuggestions([]);
+                setShowSuggestions(false);
+              }}
+              style={{
+                padding: 8,
+              }}
+            >
+              <Text style={{ 
+                fontSize: 16, 
+                color: 'gray',
+                fontWeight: 'bold'
+              }}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         
         {/* Danh sách gợi ý địa chỉ */}
         {showSuggestions && addressSuggestions.length > 0 && (
@@ -410,51 +382,125 @@ const Map = () => {
             ))}
           </View>
         )}
+  <TouchableOpacity
+    style={{
+      backgroundColor: '#007AFF',
+      padding: 10,
+      borderRadius: 5,
+      alignItems: 'center',
+      marginBottom: 10
+    }}
+    onPress={() => getCoordinatesFromAddress(address)}
+  >
+    <Text style={{ color: 'white', fontWeight: 'bold' }}>Tìm kiếm vị trí</Text>
+  </TouchableOpacity>
+        
+      </View>
+      
+      <MapView
+        ref={mapRef}
+        style={{ flex: 1 }}
+        initialRegion={{
+          latitude: 10.980724795723445,
+          longitude: 106.67531866840427,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }}
+        showsUserLocation={true}
+        showsMyLocationButton={false}
+        mapPadding={{
+          top: 0,
+          right: 0,
+          bottom: 70,
+          left: 0
+        }}
+        onPress={handleMapPress}
+      >
+        {/* Thêm Marker cho vị trí hiện tại */}
+        {currentPosition && (
+          <Marker
+            coordinate={currentPosition}
+            title={"Vị trí hiện tại"}
+            description={address}
+            pinColor="red"
+          />
+        )}
 
-        <Button
-          title="Lấy vị trí hiện tại"
+        {destination && (
+          <Marker
+            coordinate={destination}
+            title={"Điểm đến"}
+            pinColor="blue"
+          />
+        )}
+
+        {currentPosition && destination && routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeWidth={3}
+            strokeColor="blue"
+          />
+        )}
+      </MapView>
+
+      {/* Thêm nút xác nhận ở dưới */}
+      <View style={{
+        position: 'absolute',
+        bottom: 20,
+        left: 20,
+        right: 20,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#007AFF',
+            padding: 15,
+            borderRadius: 10,
+            flex: 1,
+            marginRight: 10,
+            alignItems: 'center',
+            shadowColor: "#000",
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+          }}
+          onPress={handleOrder}
+        >
+          <Text style={{
+            color: 'white',
+            fontSize: 16,
+            fontWeight: 'bold'
+          }}>Xác nhận địa chỉ</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#007AFF',
+            width: 45,
+            height: 45,
+            borderRadius: 10,
+            justifyContent: 'center',
+            alignItems: 'center',
+            shadowColor: "#000",
+            shadowOffset: {
+              width: 0,
+              height: 2,
+            },
+            shadowOpacity: 0.25,
+            shadowRadius: 3.84,
+            elevation: 5,
+          }}
           onPress={async () => {
             Geolocation.getCurrentPosition(
               async (position) => {
                 const { latitude, longitude } = position.coords;
                 const currentCoordinate = { latitude, longitude };
                 setCurrentPosition(currentCoordinate);
-
-                // Tìm cơ sở gần nhất
-                let nearestStore = null;
-                let shortestDistance = Infinity;
-                
-                storeLocations.forEach(store => {
-                  const distance = calculateDistance(
-                    latitude,
-                    longitude,
-                    parseFloat(store.latitude),
-                    parseFloat(store.longitude)
-                  );
-                  
-                  if (distance < shortestDistance) {
-                    shortestDistance = distance;
-                    nearestStore = store;
-                  }
-                });
-
-                if (nearestStore) {
-                  const storeCoordinate = {
-                    latitude: parseFloat(nearestStore.latitude),
-                    longitude: parseFloat(nearestStore.longitude)
-                  };
-                  setDestination(storeCoordinate);
-                  
-                  // Lấy và vẽ đường đi
-                  const route = await getRouteFromGeoapify(currentCoordinate, storeCoordinate);
-                  setRouteCoordinates(route);
-                  
-                  // Hiển thị thông tin
-                  Alert.alert(
-                    'Cơ sở gần nhất',
-                    `${nearestStore.name}\n${nearestStore.address}\nKhoảng cách: ${shortestDistance.toFixed(2)} km`
-                  );
-                }
 
                 // Chuyển đổi tọa độ thành địa chỉ cho điểm xuất phát
                 try {
@@ -465,7 +511,7 @@ const Map = () => {
                   
                   if (data.features && data.features.length > 0) {
                     const addressData = data.features[0].properties;
-                    // Tạo địa chỉ đầy đủ từ dữ liệu
+                    // Tạo địa chỉ đầy đủ từ d liệu
                     const formattedAddress = [
                       addressData.housenumber,
                       addressData.street,
@@ -488,89 +534,15 @@ const Map = () => {
               { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
             );
           }}
-        />
-      </View>
-      
-      <MapView
-        ref={mapRef}
-        style={{ flex: 1 }}
-        initialRegion={{
-          latitude: 10.980724795723445,
-          longitude: 106.67531866840427,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-        }}
-        showsUserLocation={true}
-        onPress={handleMapPress}
-      >
-        {currentPosition && (
-          <Marker
-            coordinate={currentPosition}
-            title={"Vị trí xuất phát"}
-            description={address}
-            pinColor="red"
-          />
-        )}
-        
-        {destination && (
-          <Marker
-            coordinate={destination}
-            title={"Điểm đến"}
-            pinColor="blue"
-          />
-        )}
-
-        {currentPosition && destination && routeCoordinates.length > 0 && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeWidth={3}
-            strokeColor="blue"
-          />
-        )}
-
-        {storeLocations.map(store => (
-          <Marker
-            key={store.id}
-            coordinate={{
-              latitude: parseFloat(store.latitude),
-              longitude: parseFloat(store.longitude)
-            }}
-            title={store.name}
-            description={store.address}
-            pinColor="green"
-          />
-        ))}
-      </MapView>
-
-      {/* Thêm nút xác nhận ở dưới */}
-      <View style={{
-        position: 'absolute',
-        bottom: 20,
-        left: 20,
-        right: 20,
-      }}>
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#007AFF',
-            padding: 15,
-            borderRadius: 10,
-            alignItems: 'center',
-            shadowColor: "#000",
-            shadowOffset: {
-              width: 0,
-              height: 2,
-            },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-          }}
-          onPress={handleOrder}
         >
-          <Text style={{
-            color: 'white',
-            fontSize: 16,
-            fontWeight: 'bold'
-          }}>Xác nhận địa chỉ</Text>
+          <Image 
+            source={require('../assets/place.png')} 
+            style={{
+              width: 24,
+              height: 24,
+              
+            }}
+          />
         </TouchableOpacity>
       </View>
     </View>

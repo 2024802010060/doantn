@@ -3,16 +3,16 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react
 import { useCart } from "../routers/CartContext"
 import { Button } from 'react-native-paper';
 import { useMyContextProvider } from "../index"
+import { useNavigation } from '@react-navigation/native';
 import firestore from "@react-native-firebase/firestore"
 import moment from 'moment';
 
 const Cart = () => {
+  const navigation = useNavigation();
   const { cart, removeFromCart, clearCart, updateQuantity } = useCart();
   const [controller] = useMyContextProvider();
   const { userLogin } = controller;
-  const customerId = userLogin?.email?.split('@')[0] || "";
-  const timestamp = moment().format('YYMMDDHHmmss');
-  const app_trans_id = `${timestamp}_${customerId}`;
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   // Check if userLogin is null
   if (!userLogin) {
     return (
@@ -52,9 +52,7 @@ const Cart = () => {
       </View>
   );
 
-  const [datetime, setDatetime] = useState(new Date());
-  const newId = userLogin.email + userLogin.phone;
-  const APPOINTMENTs = firestore().collection("Appointments");
+  
 
   const increaseQuantity = (id) => {
     const item = cart.find(item => item.id === id);
@@ -76,54 +74,11 @@ const Cart = () => {
       Alert.alert("Thông báo", "Giỏ hàng của bạn đang trống. Vui lòng thêm sản phẩm trước khi đặt hàng.");
       return; // Exit the function if the cart is empty
     }
-
-    // Confirmation alert before placing the order
-    Alert.alert(
-      "Xác nhận đặt hàng",
-      "Bạn có chắc chắn muốn đặt đơn hàng này?",
-      [
-        {
-          text: "Hủy",
-          style: "cancel"
-        },
-        {
-          text: "Đặt hàng",
-          onPress: () => {
-            const services = cart.map(item => ({
-              title: item.title,
-              quantity: item.quantity,
-              price:item.price,
-            }));
-            Alert.alert(
-              "Thành công",
-              "Sản phẩm đã được đặt thành công",
-              [{ text: "OK" }]
-            );
-
-            clearCart();
-
-            APPOINTMENTs
-              .add({
-                id: app_trans_id,
-                email: userLogin.email,
-                fullName: userLogin.fullName,
-                services,
-                totalPrice: total,
-                phone: userLogin.phone,
-                datetime,
-                state: "new",
-                appointment: "unpaid"
-              })
-              .then(r => {
-                APPOINTMENTs.doc(r.id).update({ id: app_trans_id });
-              });
-          }
-        }
-      ]
-    );
+    navigation.navigate('IdentifyCart');
+    
   }
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  
 
   return (
     <View style={styles.container}>

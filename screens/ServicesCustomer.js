@@ -5,7 +5,7 @@ import firestore from '@react-native-firebase/firestore';
 import { Menu, MenuTrigger, MenuOptions, MenuOption } from 'react-native-popup-menu';
 import { SwiperFlatList } from 'react-native-swiper-flatlist';
 import { Dimensions } from 'react-native';
-import { ScrollView } from "react-native-gesture-handler";
+
 
 const ServicesCustomer = ({ navigation, route }) => {
     
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     },
     
     imagerandom: {
-        width: 152,
+        width: 155,
         height: 98,
         borderRadius: 13,
         borderWidth: 0.5,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
         width: 155,
         height: 160,
         margin: 10,
-        borderRadius: 15,
+        borderRadius: 13,
         borderWidth: 1,
         borderColor: 'black',
     },

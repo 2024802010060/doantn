@@ -44,8 +44,12 @@ const RouterServiceCustomer = ({ navigation }) => {
             component={Appointment} 
             options={{
                 title: "Đặt hàng",
-                headerRight: null
+                headerRight: null,
+                headerStyle: {
+                    backgroundColor: "white"
+                },
             }}/>
+            
         </Stack.Navigator>
     )
 }

@@ -18,14 +18,15 @@ const Appointments = () => {
         const unsubscribe = firestore()
             .collection('Appointments')
             .where('email', '==', userLogin.email)
-            .where('state', '==', 'new')
             .onSnapshot(querySnapshot => {
                 const appointmentsData = [];
                 querySnapshot.forEach(documentSnapshot => {
-                    appointmentsData.push({
-                        ...documentSnapshot.data(),
-                        id: documentSnapshot.id,
-                    });
+                    const data = documentSnapshot.data();
+                    if (!(data.state === 'complete' && data.paymentMethod === 'paid')) {
+                        appointmentsData.push({
+                            ...data,
+                        });
+                    }
                 });
 
                 // Sắp xếp theo thời gian, đơn hàng mới nhất ở trên cùng
@@ -66,7 +67,7 @@ const Appointments = () => {
                             </Text>
                         </View>
                         <Text style={styles.orderIdText}>
-                            Mã đơn: {item.id.split('_').pop()}
+                            Mã đơn: {item.id}
                         </Text>
                     </View>
 
@@ -88,7 +89,7 @@ const Appointments = () => {
                         mode="contained"
                         style={styles.detailButton}
                         labelStyle={styles.detailButtonLabel}
-                        onPress={() => navigation.navigate('OrderDetail', { order: item })}
+                        onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
                     >
                         Xem chi tiết
                     </Button>
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
         elevation: 4,
         backgroundColor: '#FFFFFF',
         borderLeftWidth: 5,
-        borderLeftColor: '#FFA500', // Màu cam cho trạng thái "Đang duyệt"
+        borderLeftColor: '#FF6B00', // Màu cam đậm hơn cho viền trái
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
     },
     statusText: {
-        color: '#FFA500',
+        color: '#FF6B00',
         fontSize: 14,
         fontWeight: '600',
     },
@@ -165,12 +166,14 @@ const styles = StyleSheet.create({
     },
     detailButton: {
         marginTop: 10,
-        backgroundColor: '#FF9800',
+        backgroundColor: '#FF6B00',
         borderRadius: 8,
+        elevation: 3,
     },
     detailButtonLabel: {
         color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '600',
+        letterSpacing: 0.5,
     },
 });

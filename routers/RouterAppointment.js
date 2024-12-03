@@ -43,14 +43,7 @@ const RouterAppointment = ({ navigation }) => {
             name="PaymentZalo" 
             component={PaymentZalo} 
             options={{
-                title: "Thanh toán bằng ZaloPay",
-                headerStyle: { backgroundColor: 'orange' },
-                headerTitleStyle: { 
-                    color: 'black', // Changed title color to white
-                    fontSize: 25, // Increased font size to 30
-                    fontWeight: 'bold' // Made the font bold
-                },
-                
+                headerShown: false,
             }}
             />
             <Stack.Screen 
@@ -58,7 +51,7 @@ const RouterAppointment = ({ navigation }) => {
             component={Transaction} 
             options={{
                 title: "Lịch sử đơn hàng",
-                headerStyle: { backgroundColor: 'orange' },
+                
                 headerTitleStyle: { 
                     color: 'black', // Changed title color to white
                     fontSize: 25, // Increased font size to 30
@@ -71,7 +64,7 @@ const RouterAppointment = ({ navigation }) => {
             component={OrderDetail} 
                 options={{
                 title: "Chi tiết đơn hàng",
-                headerStyle: { backgroundColor: 'orange' },
+                
                 headerTitleStyle: { 
                     color: 'black', // Changed title color to white
                     fontSize: 25, // Increased font size to 30
@@ -79,6 +72,7 @@ const RouterAppointment = ({ navigation }) => {
                 },
             }}
             />
+            
         </Stack.Navigator>
     )
 }

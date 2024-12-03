@@ -1,22 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import firestore from '@react-native-firebase/firestore'; // Import Firebase
 
 const OrderDetail = ({ route, navigation }) => {
-    const { order } = route.params; // Nhận thông tin đơn hàng từ params
-    const [orderData, setOrderData] = useState(null); // State để lưu dữ liệu đơn hàng
+    const { orderId } = route.params; // Thay đổi từ order sang orderId
+    const [orderData, setOrderData] = useState(null);
 
     useEffect(() => {
         const fetchOrderData = async () => {
             try {
                 const orderDoc = await firestore()
                     .collection('Appointments')
-                    .doc(order.id) // Lấy dữ liệu dựa trên order.id
+                    .where('id', '==', orderId) // Thay đổi cách query
                     .get();
 
-                if (orderDoc.exists) {
-                    setOrderData(orderDoc.data()); // Lưu toàn bộ dữ liệu đơn hàng
+                if (!orderDoc.empty) {
+                    setOrderData(orderDoc.docs[0].data());
                 } else {
                     console.log("Không tìm thấy đơn hàng");
                 }
@@ -26,15 +26,16 @@ const OrderDetail = ({ route, navigation }) => {
         };
 
         fetchOrderData();
-    }, [order.id]);
+    }, [orderId]);
+
     //ham hien thi gia tien
     const formatPrice = (price) => {
         return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     };
     return (
-        <View style={styles.container}>
+        <ScrollView style={styles.container}>
             <View style={styles.card}>
-                <Text style={styles.title}>Chi tiết đơn hàng</Text>
+                <Text style={styles.title}>Trạng thái đơn hàng</Text>
                 {orderData ? (
                     <View style={styles.orderDetails}>
                         <View style={styles.statusBadge}>
@@ -61,13 +62,15 @@ const OrderDetail = ({ route, navigation }) => {
                                     styles.value,
                                     {color: orderData.appointment === 'paid' ? '#4CAF50' : '#FF5722'}
                                 ]}>
-                                    {orderData.appointment === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                                    {orderData.appointment === 'paid' ? 'Đã thanh toán' : 
+                                     orderData.appointment === 'online' ? 'Chờ thanh toán online' : 
+                                     'Thanh toán khi nhận hàng'}
                                 </Text>
                             </View>
                         </View>
 
                         <View style={styles.servicesCard}>
-                            <Text style={styles.sectionTitle}>Chi tiết dịch vụ</Text>
+                            <Text style={styles.sectionTitle}>Chi tiết sản phẩm</Text>
                             {Array.isArray(orderData.services) && orderData.services.map((service, index) => (
                                 <View key={index} style={styles.serviceItem}>
                                     <View style={styles.serviceRow}>
@@ -87,20 +90,22 @@ const OrderDetail = ({ route, navigation }) => {
                             <Text style={styles.totalAmount}>{formatPrice(orderData.totalPrice)} vnđ</Text>
                         </View>
 
-                        <Button 
-                            mode="contained" 
-                            onPress={() => navigation.navigate("PaymentZalo", { orderId: orderData.id })}
-                            style={[styles.paymentButton, { backgroundColor: '#0068FF' }]}
-                            labelStyle={styles.buttonLabel}
-                        >
-                            Thanh toán bằng ZaloPay
-                        </Button>
+                        {orderData.appointment !== 'paid' && (
+                            <Button 
+                                mode="contained" 
+                                onPress={() => navigation.navigate("PaymentZalo", { orderId: orderId })}
+                                style={[styles.paymentButton, { backgroundColor: '#0068FF' }]}
+                                labelStyle={styles.buttonLabel}
+                            >
+                                Thanh toán bằng ZaloPay
+                            </Button>
+                        )}
                     </View>
                 ) : (
                     <ActivityIndicator size="large" color="#6200ee" />
                 )}
             </View>
-        </View>
+        </ScrollView>
     );
 };
 

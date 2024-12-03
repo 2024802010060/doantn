@@ -1,12 +1,18 @@
-import React,{useEffect} from "react";
-import { Text } from "react-native-paper";
+import React,{useEffect, useState} from "react";
+import { Text, Modal, TextInput, Button as PaperButton, IconButton } from "react-native-paper";
 import {Image, View, StyleSheet,Button,ScrollView } from "react-native";
 import {logout, useMyContextProvider } from "../index";
 import { NavigationContainer } from "@react-navigation/native";
 import Map from "./Map";
+import firestore from "@react-native-firebase/firestore";
+
 const ProfileCustomer = ({navigation}) =>{
     const [controller, dispatch] = useMyContextProvider();
     const { userLogin } = controller;
+    const [isEditingPhone, setIsEditingPhone] = useState(false);
+    const [newPhone, setNewPhone] = useState('');
+    const [isEditingAddress, setIsEditingAddress] = useState(false);
+    const [newAddress, setNewAddress] = useState('');
     
     const handleLogout = () => {
         logout(dispatch);
@@ -15,6 +21,103 @@ const ProfileCustomer = ({navigation}) =>{
     const handleEdit = () => {
         navigation.navigate("ChangePassword");
     };
+    const handleChangePhone = async () => {
+        if (!newPhone || newPhone.length < 10) {
+            alert('Vui lòng nhập số điện thoại hợp lệ (ít nhất 10 số)');
+            return;
+        }
+
+        try {
+            // Sử dụng email của người dùng làm document ID
+            if (!userLogin || !userLogin.email) {
+                throw new Error('Không tìm thấy thông tin người dùng');
+            }
+
+            // Cập nhật trong Firebase
+            await firestore()
+                .collection('USERS')
+                .doc(userLogin.email)
+                .update({
+                    phone: newPhone
+                });
+
+            // Cập nhật state local
+            dispatch({
+                type: 'SET_USER_LOGIN',
+                payload: {
+                    ...userLogin,
+                    phone: newPhone
+                }
+            });
+
+            setIsEditingPhone(false);
+            setNewPhone('');
+            alert('Cập nhật số điện thoại thành công!');
+        } catch (error) {
+            console.error('Lỗi khi cập nhật số điện thoại:', error);
+            alert('Có lỗi xảy ra khi cập nhật số điện thoại');
+        }
+    };
+    const handleChangeAddress = async () => {
+        if (!newAddress) {
+            alert('Vui lòng nhập địa chỉ mới');
+            return;
+        }
+
+        try {
+            if (!userLogin || !userLogin.email) {
+                throw new Error('Không tìm thấy thông tin người dùng');
+            }
+
+            // Cập nhật trong Firebase
+            await firestore()
+                .collection('USERS')
+                .doc(userLogin.email)
+                .update({
+                    address: newAddress
+                });
+
+            // Cập nhật state local
+            dispatch({
+                type: 'SET_USER_LOGIN',
+                payload: {
+                    ...userLogin,
+                    address: newAddress
+                }
+            });
+
+            setIsEditingAddress(false);
+            setNewAddress('');
+            alert('Cập nhật địa chỉ thành công!');
+        } catch (error) {
+            console.error('Lỗi khi cập nhật địa chỉ:', error);
+            alert('Có lỗi xảy ra khi cập nhật địa chỉ');
+        }
+    };
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const userDoc = await firestore()
+                    .collection('USERS')
+                    .doc(userLogin.email)
+                    .get();
+
+                if (userDoc.exists) {
+                    const userData = userDoc.data();
+                    dispatch({
+                        type: 'SET_USER_LOGIN',
+                        payload: userData
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            }
+        };
+
+        fetchUserData();
+    }, [navigation]);
+
     return(
         <View style={styles.container}>
             {userLogin !== null ? (
@@ -30,13 +133,6 @@ const ProfileCustomer = ({navigation}) =>{
                             style={{ width: 75, height: 75, margin: 20, tintColor: 'white' }} />
                             <Text style={{fontSize: 20, color: 'white'}}>{userLogin.fullName}</Text>
                         </View>
-                        
-                        <View style={styles.infoRow}>
-                            <Image source={require('../assets/phone.png')} 
-                            style={{ width: 25, height: 25, marginRight: 10 }} />
-                            <Text style={styles.label}>Điện thoại: </Text>
-                            <Text style={styles.value}>{userLogin.phone}</Text>
-                        </View>
                         <View style={styles.infoRow}>
                             <Image source={require('../assets/email.png')} 
                             style={{ width: 25, height: 25, marginRight: 10 }} />
@@ -50,11 +146,95 @@ const ProfileCustomer = ({navigation}) =>{
                             <Text style={styles.value}>{'*'.repeat(userLogin.password.length)}</Text>
                         </View>
                         <View style={styles.infoRow}>
+                            <Image source={require('../assets/phone.png')} 
+                            style={{ width: 25, height: 25, marginRight: 10 }} />
+                            <Text style={styles.label}>Điện thoại: </Text>
+                            <Text style={styles.value}>{userLogin.phone}</Text>
+                            <IconButton
+                                icon={() => (
+                                    <Image 
+                                        source={require('../assets/edit.png')} 
+                                        style={{ width: 25, height: 25 }}
+                                    />
+                                )}
+                                onPress={() => setIsEditingPhone(!isEditingPhone)}
+                                style={{ margin: 0, marginRight: -10 }}
+                            />
+                        </View>
+                        
+                        {isEditingPhone && (
+                            <View style={styles.phoneEditContainer}>
+                                <TextInput
+                                    value={newPhone}
+                                    onChangeText={setNewPhone}
+                                    keyboardType="phone-pad"
+                                    style={styles.phoneInput}
+                                    placeholder="Nhập số điện thoại mới"
+                                />
+                                <View style={styles.phoneEditButtons}>
+                                    <Button
+                                        color={"#FF8C00"}
+                                        textColor="#000000"
+                                        mode="contained"
+                                        onPress={() => setIsEditingPhone(false)}
+                                        title="Hủy"
+                                    />
+                                    <View style={{width: 10}} />
+                                    <Button
+                                        color={"#FF8C00"}
+                                        textColor="#000000"
+                                        mode="contained"
+                                        onPress={handleChangePhone}
+                                        title="Lưu"
+                                    />
+                                </View>
+                            </View>
+                        )}
+                        
+                        
+                        <View style={styles.infoRow}>
                             <Image source={require('../assets/place.png')} 
                             style={{ width: 25, height: 25, marginRight: 10 }} />
                             <Text style={styles.label}>Địa chỉ: </Text>
                             <Text style={styles.value}>{userLogin.address}</Text>
+                            <IconButton
+                                icon={() => (
+                                    <Image 
+                                        source={require('../assets/edit.png')} 
+                                        style={{ width: 25, height: 25 }}
+                                    />
+                                )}
+                                onPress={() => setIsEditingAddress(!isEditingAddress)}
+                                style={{ margin: 0, marginRight: -10 }}
+                            />
                         </View>
+                        {isEditingAddress && (
+                            <View style={styles.phoneEditContainer}>
+                                <TextInput
+                                    value={newAddress}
+                                    onChangeText={setNewAddress}
+                                    style={styles.phoneInput}
+                                    placeholder="Nhập địa chỉ mới"
+                                />
+                                <View style={styles.phoneEditButtons}>
+                                    <Button
+                                        color={"#FF8C00"}
+                                        textColor="#000000"
+                                        mode="contained"
+                                        onPress={() => setIsEditingAddress(false)}
+                                        title="Hủy"
+                                    />
+                                    <View style={{width: 10}} />
+                                    <Button
+                                        color={"#FF8C00"}
+                                        textColor="#000000"
+                                        mode="contained"
+                                        onPress={handleChangeAddress}
+                                        title="Lưu"
+                                    />
+                                </View>
+                            </View>
+                        )}
                         <View style={[styles.infoRow, {height:100}]}>
                             <Image source={require('../assets/question.png')} 
                             style={{ width: 25, height: 25, marginRight: 10 }} />
@@ -127,7 +307,7 @@ const styles = StyleSheet.create({
     infoRow: {
         flexDirection: 'row',
         padding: 20,
-        borderBottomWidth: 1,        // Thêm đường kẻ phía dưới
+        borderBottomWidth: 1,        // Thêm đường kẻ phía dưi
         borderBottomColor: '#ddd',   // Màu của đường kẻ
         alignItems: 'center',        // Căn giữa theo chiều dọc
         backgroundColor: '#fff',     // Nn trắng cho mỗi hàng
@@ -136,12 +316,12 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 20,
         fontWeight: 'bold',
-        width: '40%',               // Chiều rộng cố định cho label
+        width: '30%',
     },
     value: {
         fontSize: 20,
-        flex: 1,                    // Chiếm phần còn lại của hàng
-        textAlign: 'right',         // Căn chỉnh văn bản sang bên phải
+        flex: 1,
+        textAlign: 'left',
     },
     buttonContainer: {
         padding: 10,
@@ -183,6 +363,25 @@ const styles = StyleSheet.create({
     loginButtonContainer: {
         width: '80%',
         marginTop: 10,
+    },
+    phoneEditContainer: {
+        backgroundColor: '#fff',
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#ddd',
+        marginBottom: 5,
+    },
+    phoneInput: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 5,
+        padding: 10,
+        marginBottom: 10,
+        backgroundColor: '#fff',
+    },
+    phoneEditButtons: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
     },
 });
 export default ProfileCustomer;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, FlatList,StyleSheet } from "react-native";
 import { Text,Card,Title,Paragraph,IconButton, Button } from "react-native-paper";
-import firestore from '@react-native-firebase/firestore';
+import firestore, { and } from '@react-native-firebase/firestore';
 import { Menu, MenuTrigger, MenuOptions, MenuOption } from 'react-native-popup-menu';
 import { useMyContextProvider } from "../index";
 import { useNavigation } from '@react-navigation/native'; // Thêm import này
@@ -19,6 +19,7 @@ const Transaction = () => {
             .collection('Appointments')
             .where('email', '==', userLogin.email)
             .where('state', '==', 'complete')
+            .where('paymentMethod', '==', 'paid')
             .onSnapshot(querySnapshot => {
                 const appointmentsData = [];
                 querySnapshot.forEach(documentSnapshot => {
@@ -52,25 +53,43 @@ const Transaction = () => {
 
     // show các lịch
     const renderItem = ({ item }) => {
-        const service = services.find(s => s.id === item.serviceId); // Tìm dịch vụ tương ứng với item
+        const service = services.find(s => s.id === item.serviceId);
         return (
             <Card style={styles.card}>
                 <Card.Content>
-                    <Paragraph style={[styles.text, 
-                        item.state === 'new' ? styles.redText : 
-                        item.state === 'completed' ? styles.greenText : 
-                        styles.defaultText
-                    ]}>
-                        Trạng thái: {item.state === 'new' ? 'Đang duyệt' : 'Đã hoàn thành'}
-                    </Paragraph>
-                    <Paragraph style={styles.text}>Thời gian: {item.datetime ? item.datetime.toDate().toLocaleString() : 'Không xác định'}</Paragraph>
-                    <Paragraph style={styles.text}>Mã đơn hàng: {item.id.split('_').pop()}</Paragraph>
-                    <Paragraph style={styles.text}>
-                        Tổng tiền: {item.totalPrice.toLocaleString('vi-VN')}.000 vnđ
-                    </Paragraph>
-                    
-                    {service && <Paragraph style={styles.text}>Dịch vụ: {service.name}</Paragraph>} 
-                    <Button onPress={() => navigation.navigate('OrderDetail', { order: item })}>Xem chi tiết</Button>
+                    <View style={styles.orderHeader}>
+                        <View style={styles.statusBadge}>
+                            <Text style={styles.statusText}>
+                                {item.state === 'new' ? 'Đang duyệt' : 'Đã hoàn thành'}
+                            </Text>
+                        </View>
+                        <Text style={styles.orderIdText}>
+                            Mã đơn: {item.id.split('_').pop()}
+                        </Text>
+                    </View>
+
+                    <Text style={styles.priceText}>
+                        {item.totalPrice.toLocaleString('vi-VN')} VNĐ
+                    </Text>
+
+                    <Text style={styles.dateText}>
+                        {item.datetime ? item.datetime.toDate().toLocaleString() : 'Không xác định'}
+                    </Text>
+
+                    {service && (
+                        <Text style={styles.dateText}>
+                            Dịch vụ: {service.name}
+                        </Text>
+                    )}
+
+                    <Button 
+                        mode="contained"
+                        style={styles.detailButton}
+                        labelStyle={styles.detailButtonLabel}
+                        onPress={() => navigation.navigate('OrderDetail', { order: item })}
+                    >
+                        Xem chi tiết
+                    </Button>
                 </Card.Content>
             </Card>
         );
@@ -94,34 +113,61 @@ const Transaction = () => {
 
 export default Transaction;
 const styles = StyleSheet.create({
-    text: {
-        fontSize: 17, 
-        fontWeight: "bold",
-        paddingVertical: 5, // Thêm padding dọc để tránh bị mất phần trên
-    },
-    redText: { // Màu đỏ cho trạng thái "Đang giao"
-        color: 'black',
-        fontSize: 26, // Kích thước lớn hơn
-        fontWeight: "bold",
-    },
-    greenText: { // Màu xanh lá cho trạng thái "Đã hoàn thành"
-        color: 'green',
-        fontSize: 26, // Kích thước lớn hơn
-        fontWeight: "bold",
-    },
-    defaultText: { // Màu mặc định cho các trạng thái khác
-        color: 'black',
-        fontSize: 26, // Kích thước lớn hơn
-        fontWeight: "bold",
-    },
-    largeText: { // Thêm kiểu dáng cho trạng thái "Đang giao"
-        fontSize: 22, // Kích thước lớn hơn
-        fontWeight: "bold",
-    },
     card: {
         margin: 10,
-        borderRadius: 8,
-        elevation: 3,
-        backgroundColor: '#E0EEE0',
+        borderRadius: 15,
+        elevation: 4,
+        backgroundColor: '#FFFFFF',
+        borderLeftWidth: 5,
+        borderLeftColor: '#4CAF50', // Đổi sang màu xanh lá
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+    },
+    orderHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    statusBadge: {
+        backgroundColor: '#E8F5E9',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 25,
+        alignSelf: 'flex-start',
+    },
+    statusText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    orderIdText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    priceText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 5,
+    },
+    dateText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    detailButton: {
+        backgroundColor: '#4CAF50',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 5,
+        marginTop: 10,
+    },
+    detailButtonLabel: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
     },
 });

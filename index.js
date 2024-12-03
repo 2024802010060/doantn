@@ -17,6 +17,8 @@ const reducer = (state, action) => {
     switch (action.type) {
         case "USER_LOGIN":
             return { ...state, userLogin: action.value };
+        case "SET_USER_LOGIN":
+            return { ...state, userLogin: action.payload };
         case "LOGOUT":
             return { ...state, userLogin: null };
         default:

@@ -2,11 +2,10 @@ import React from "react";
 import { Text, StyleSheet } from "react-native";
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import RouterServiceCustomer from "./RouterServiceCustomer";
-import Appointments from "../screens/Appointments";
-import ProfileCustomer from "../screens/ProfileCustomer";
+import RouterCart from "./RouterCart";
 import { Image } from "react-native";
 import Cart from "../screens/Cart";
-import ServicesCustomer from "../screens/ServicesCustomer";
+
 import RouterProfile from "./RouterProfile";
 import RouterAppointment from "./RouterAppointment";
 import Map from "../screens/Map";
@@ -47,8 +46,8 @@ import Map from "../screens/Map";
           }}
         />
         <Tab.Screen
-          name="Cart"
-          component={Cart}
+          name="RouterCart"
+          component={RouterCart}
           options={{
             headerShown: false,
             tabBarLabel: "",
