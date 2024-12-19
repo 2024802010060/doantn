@@ -69,7 +69,7 @@ const createAccount = async (email, password, fullName, phone, address, role, na
             "Thành công",
             "Tạo tài khoản thành công với email là: " + email,
             [
-                { text: "OK", onPress: () => navigation.navigate("Login") }
+                { text: "OK" }
             ]
         );
     } catch (error) {

@@ -10,7 +10,7 @@ const Login = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [controller, dispatch] = useMyContextProvider();
   const { userLogin } = controller;
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
   const [disableLogin, setDisableLogin] = useState(true);
   const hasErrorEmail = () => !email.includes("@");
   const hasErrorPassword = () => password.length < 6;

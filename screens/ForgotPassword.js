@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import firestore from "@react-native-firebase/firestore";
+import auth from '@react-native-firebase/auth';
 
 const ForgotPassword = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -11,30 +12,33 @@ const ForgotPassword = ({ navigation }) => {
 
   const hasErrorEmail = () => !email.includes('@');
 
-  const handleGetPassword = () => {
-    firestore()
-      .collection('USERS')
-      .doc(email)
-      .get()
-      .then((documentSnapshot) => {
-        if (documentSnapshot.exists) {
-          const userData = documentSnapshot.data();
-          setPassword(userData.password);
-          setError('');
-        } else {
-          setPassword('');
-          setError('Email không tồn tại trong hệ thống.');
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching document: ", error);
-        setPassword('');
-        setError('Đã có lỗi xảy ra. Vui lòng thử lại sau.');
-      });
+  const handleGetPassword = async () => {
+    setError('');
+    setPassword('');
+    
+    try {
+      // Kiểm tra email trong collection USERS của Firestore
+      const userDoc = await firestore()
+        .collection('USERS')
+        .where('email', '==', email)
+        .get();
+
+      if (!userDoc.empty) {
+        // Email tồn tại trong Firestore, gửi link reset password
+        await auth().sendPasswordResetEmail(email);
+        setPassword('Vui lòng kiểm tra email của bạn để đặt lại mật khẩu');
+      } else {
+        // Email không tồn tại trong Firestore
+        setError('Email không tồn tại trong hệ thống.');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError('Đã có lỗi xảy ra. Vui lòng thử lại sau.');
+    }
   };
   useEffect(() => {
-    setDisableGetPassword(email.trim() === '' || !!error || hasErrorEmail());
-  }, [email, error, hasErrorEmail]);
+    setDisableGetPassword(email.trim() === '' || hasErrorEmail());
+  }, [email]);
 
   return (
     <View style={{ flex: 1, padding: 10, backgroundColor:"white" }}>
@@ -46,7 +50,7 @@ const ForgotPassword = ({ navigation }) => {
         marginTop: 100,
         marginBottom: 50
       }}>
-        Forgot Password
+        Quên Mật Khẩu
       </Text>
       <TextInput
         label={"Email"}
@@ -57,18 +61,22 @@ const ForgotPassword = ({ navigation }) => {
       <HelperText style={{paddingLeft:30}} type='error' visible={hasErrorEmail()}>
         Địa chỉ email không hợp lệ
       </HelperText>
-      {password ? (
-        <View style={{flexDirection: "row"}}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Your Password: </Text>
-          <Text style={{fontSize: 18}}>{password}</Text>
-        </View>
-      ) : null}
+      {error && (
+        <Text style={styles.errorText}>
+          {error}
+        </Text>
+      )}
+      {password && (
+        <Text style={styles.successText}>
+          {password}
+        </Text>
+      )}
       <Button style={styles.button} mode='contained' textColor='black' buttonColor='orange' onPress={handleGetPassword} disabled={disableGetPassword}>
-        Get Password
+        Đặt Lại Mật Khẩu
       </Button>
       <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
         <Button onPress={() => navigation.navigate("Login")}>
-          Back to Login
+          Quay Lại Đăng Nhập
         </Button>
       </View>
     </View>
@@ -89,6 +97,21 @@ const styles = StyleSheet.create({
   
   button:{
     marginRight:40,marginLeft:40, borderRadius:5, marginTop:20
+  },
+  
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginVertical: 10,
+    paddingHorizontal: 20
+  },
+  
+  successText: {
+    color: 'green',
+    textAlign: 'center',
+    marginVertical: 10,
+    paddingHorizontal: 20,
+    fontSize: 16
   }
 })
 export default ForgotPassword;
