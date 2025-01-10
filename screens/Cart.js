@@ -22,9 +22,7 @@ const Cart = () => {
     );
   }
 
-  useEffect(() => {
-    console.log("Cart context:", { cart, removeFromCart, clearCart, updateQuantity });
-  }, []);
+  
 
   const formatPrice = (price) => {
     return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Image, View, StyleSheet } from 'react-native';
+import { Image, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { TextInput, Button, Text, HelperText, IconButton } from 'react-native-paper';
 import { createAccount } from '../index';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const Register = ({ navigation }) => {
   const [phone, setPhone] = useState('');
@@ -69,20 +69,11 @@ const Register = ({ navigation }) => {
           value={password}
           onChangeText={setPassword}
           secureTextEntry={!showPassword}
-          style={styles.passwordInput}
+          style={[styles.passwordInput, { paddingRight: 40 }]}
           mode="outlined"
-          right={
-            <TextInput.Icon
-              icon={() => (
-                <Image
-                  source={showConfirmPassword ? require('../assets/eye-hidden.png') : require('../assets/eye.png')}
-                  style={{ width: 24, height: 24 }}
-                />
-              )}
-              onPress={() => setShowPassword(!showPassword)}
-            />
-          }
+          
         />
+        
       </View>
       <HelperText type="error" visible={hasErrorPassword()} style={styles.errorText}>
         Password ít nhất 6 kí tự
@@ -96,17 +87,7 @@ const Register = ({ navigation }) => {
           secureTextEntry={!showConfirmPassword}
           style={styles.passwordInput}
           mode="outlined"
-          right={
-            <TextInput.Icon
-              icon={() => (
-                <Image
-                  source={showConfirmPassword ? require('../assets/eye-hidden.png') : require('../assets/eye.png')}
-                  style={{ width: 24, height: 24 }}
-                />
-              )}
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-            />
-          }
+          
         />
       </View>
       
@@ -127,7 +108,8 @@ const Register = ({ navigation }) => {
       <TextInput
         label="Điện thoại"
         value={phone}
-        onChangeText={setPhone}
+        onChangeText={(text) => setPhone(text.replace(/[^0-9]/g, ''))}
+        keyboardType="numeric"
         style={styles.input}
         mode="outlined"
       />
@@ -193,6 +175,7 @@ const styles = StyleSheet.create({
   icon: {
     width: 24,
     height: 24,
+    resizeMode: 'contain'
   },
   button: {
     marginTop: 20,

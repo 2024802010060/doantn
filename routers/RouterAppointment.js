@@ -29,14 +29,7 @@ const RouterAppointment = ({ navigation }) => {
                     fontSize: 25, // Increased font size to 30
                     fontWeight: 'bold' // Made the font bold
                 },
-                headerRight: () => (
-                    <TouchableOpacity onPress={() => navigation.navigate('Transaction')}>
-                        <Image 
-                            source={require('../assets/lsgiohang.png')} 
-                            style={{ width: 70, height: 60,  }} 
-                        /> 
-                    </TouchableOpacity>
-                ),
+                
               }}
             />
             <Stack.Screen 

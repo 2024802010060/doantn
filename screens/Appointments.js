@@ -63,7 +63,8 @@ const Appointments = () => {
                     <View style={styles.orderHeader}>
                         <View style={styles.statusBadge}>
                             <Text style={styles.statusText}>
-                                {item.state === 'new' ? 'Đang duyệt' : 'Đã hoàn thành'}
+                                {item.state === 'new' ? 'Đang duyệt' :
+                                item.state === 'delivery' ? 'Đang chờ giao hàng' : 'Đã hoàn thành'}
                             </Text>
                         </View>
                         <Text style={styles.orderIdText}>
@@ -89,7 +90,10 @@ const Appointments = () => {
                         mode="contained"
                         style={styles.detailButton}
                         labelStyle={styles.detailButtonLabel}
-                        onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
+                        onPress={() => {
+                            
+                            navigation.navigate('OrderDetail', { orderId: item.id });
+                        }}
                     >
                         Xem chi tiết
                     </Button>

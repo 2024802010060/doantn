@@ -1,6 +1,6 @@
 import React,{useEffect, useState} from "react";
 import { Text, Modal, TextInput, Button as PaperButton, IconButton } from "react-native-paper";
-import {Image, View, StyleSheet,Button,ScrollView } from "react-native";
+import {Image, View, StyleSheet,Button,ScrollView, ActivityIndicator, Alert } from "react-native";
 import {logout, useMyContextProvider } from "../index";
 import { NavigationContainer } from "@react-navigation/native";
 import Map from "./Map";
@@ -13,7 +13,8 @@ const ProfileCustomer = ({navigation}) =>{
     const [newPhone, setNewPhone] = useState('');
     const [isEditingAddress, setIsEditingAddress] = useState(false);
     const [newAddress, setNewAddress] = useState('');
-    
+    const [user, setUser] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
     const handleLogout = () => {
         logout(dispatch);
         navigation.navigate("Login");
@@ -21,12 +22,40 @@ const ProfileCustomer = ({navigation}) =>{
     const handleEdit = () => {
         navigation.navigate("ChangePassword");
     };
+
+    useEffect(() => {
+        // Sử dụng onSnapshot để lắng nghe thay đổi realtime
+        const unsubscribe = firestore()
+            .collection('USERS')
+            .where('email', '==', userLogin.email)
+            .onSnapshot(querySnapshot => {
+                if (!querySnapshot.empty) {
+                    const data = querySnapshot.docs[0].data();
+                    setUser(data);
+                } else {
+                    console.log("Không tìm thấy khách hàng");
+                }
+            }, error => {
+                console.error("Lỗi khi lấy dữ liệu khách hàng: ", error);
+            });
+    
+        // Cleanup function
+        return () => unsubscribe();
+    }, []);
+
+    
+
     const handleChangePhone = async () => {
         if (!newPhone || newPhone.length < 10) {
-            alert('Vui lòng nhập số điện thoại hợp lệ (ít nhất 10 số)');
+            Alert.alert(
+                "Thông báo",
+                "Vui lòng nhập số điện thoại hợp lệ (ít nhất 10 số)",
+                [{ text: "Đồng ý" }]
+            );
             return;
         }
 
+        setIsLoading(true);
         try {
             // Sử dụng email của người dùng làm document ID
             if (!userLogin || !userLogin.email) {
@@ -52,18 +81,33 @@ const ProfileCustomer = ({navigation}) =>{
 
             setIsEditingPhone(false);
             setNewPhone('');
-            alert('Cập nhật số điện thoại thành công!');
+            Alert.alert(
+                "Thông báo",
+                "Cập nhật số điện thoại thành công!",
+                [{ text: "Đồng ý" }]
+            );
         } catch (error) {
             console.error('Lỗi khi cập nhật số điện thoại:', error);
-            alert('Có lỗi xảy ra khi cập nhật số điện thoại');
+            Alert.alert(
+                "Thông báo",
+                "Có lỗi xảy ra khi cập nhật số điện thoại",
+                [{ text: "Đồng ý" }]
+            );
+        } finally {
+            setIsLoading(false);
         }
     };
     const handleChangeAddress = async () => {
         if (!newAddress) {
-            alert('Vui lòng nhập địa chỉ mới');
+            Alert.alert(
+                "Thông báo",
+                "Vui lòng nhập địa chỉ mới",
+                [{ text: "Đồng ý" }]
+            );
             return;
         }
 
+        setIsLoading(true);
         try {
             if (!userLogin || !userLogin.email) {
                 throw new Error('Không tìm thấy thông tin người dùng');
@@ -88,10 +132,20 @@ const ProfileCustomer = ({navigation}) =>{
 
             setIsEditingAddress(false);
             setNewAddress('');
-            alert('Cập nhật địa chỉ thành công!');
+            Alert.alert(
+                "Thông báo",
+                "Cập nhật địa chỉ thành công!",
+                [{ text: "Đồng ý" }]
+            );
         } catch (error) {
             console.error('Lỗi khi cập nhật địa chỉ:', error);
-            alert('Có lỗi xảy ra khi cập nhật địa chỉ');
+            Alert.alert(
+                "Thông báo",
+                "Có lỗi xảy ra khi cập nhật địa chỉ",
+                [{ text: "Đồng ý" }]
+            );
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -120,6 +174,12 @@ const ProfileCustomer = ({navigation}) =>{
 
     return(
         <View style={styles.container}>
+            {isLoading && (
+                <View style={styles.loadingOverlay}>
+                    <ActivityIndicator size="large" color="#FF8C00" />
+                    <Text style={styles.loadingText}>Đang xử lý...</Text>
+                </View>
+            )}
             {userLogin !== null ? (
                 <>
                     <View style={styles.viewinfoRow}> 
@@ -149,7 +209,7 @@ const ProfileCustomer = ({navigation}) =>{
                             <Image source={require('../assets/phone.png')} 
                             style={{ width: 25, height: 25, marginRight: 10 }} />
                             <Text style={styles.label}>Điện thoại: </Text>
-                            <Text style={styles.value}>{userLogin.phone}</Text>
+                            <Text style={styles.value}>{user.phone}</Text>
                             <IconButton
                                 icon={() => (
                                     <Image 
@@ -166,7 +226,11 @@ const ProfileCustomer = ({navigation}) =>{
                             <View style={styles.phoneEditContainer}>
                                 <TextInput
                                     value={newPhone}
-                                    onChangeText={setNewPhone}
+                                    onChangeText={(text) => {
+                                        // Only allow digits
+                                        const numbersOnly = text.replace(/[^0-9]/g, '');
+                                        setNewPhone(numbersOnly);
+                                    }}
                                     keyboardType="phone-pad"
                                     style={styles.phoneInput}
                                     placeholder="Nhập số điện thoại mới"
@@ -185,7 +249,8 @@ const ProfileCustomer = ({navigation}) =>{
                                         textColor="#000000"
                                         mode="contained"
                                         onPress={handleChangePhone}
-                                        title="Lưu"
+                                        title={isLoading ? "Đang lưu..." : "Lưu"}
+                                        disabled={isLoading}
                                     />
                                 </View>
                             </View>
@@ -196,7 +261,7 @@ const ProfileCustomer = ({navigation}) =>{
                             <Image source={require('../assets/place.png')} 
                             style={{ width: 25, height: 25, marginRight: 10 }} />
                             <Text style={styles.label}>Địa chỉ: </Text>
-                            <Text style={styles.value}>{userLogin.address}</Text>
+                            <Text style={styles.value}>{user.address}</Text>
                             <IconButton
                                 icon={() => (
                                     <Image 
@@ -310,7 +375,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,        // Thêm đường kẻ phía dưi
         borderBottomColor: '#ddd',   // Màu của đường kẻ
         alignItems: 'center',        // Căn giữa theo chiều dọc
-        backgroundColor: '#fff',     // Nn trắng cho mỗi hàng
+        backgroundColor: '#fff',     // Nn trắng cho m���i hàng
         marginBottom: 5,             // Khoảng cách giữa các hàng
     },
     label: {
@@ -382,6 +447,22 @@ const styles = StyleSheet.create({
     phoneEditButtons: {
         flexDirection: 'row',
         justifyContent: 'flex-end',
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        bottom: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 999,
+    },
+    loadingText: {
+        color: '#fff',
+        marginTop: 10,
+        fontSize: 16
     },
 });
 export default ProfileCustomer;

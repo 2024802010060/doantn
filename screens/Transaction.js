@@ -19,7 +19,7 @@ const Transaction = () => {
             .collection('Appointments')
             .where('email', '==', userLogin.email)
             .where('state', '==', 'complete')
-            .where('paymentMethod', '==', 'paid')
+            .where('appointment', '==', 'paid')
             .onSnapshot(querySnapshot => {
                 const appointmentsData = [];
                 querySnapshot.forEach(documentSnapshot => {
@@ -86,7 +86,7 @@ const Transaction = () => {
                         mode="contained"
                         style={styles.detailButton}
                         labelStyle={styles.detailButtonLabel}
-                        onPress={() => navigation.navigate('OrderDetail', { order: item })}
+                        onPress={() => navigation.navigate('OrderDetail', { orderId: item.id })}
                     >
                         Xem chi tiết
                     </Button>

@@ -82,8 +82,9 @@ const styles = StyleSheet.create({
   },
   textform: {
     marginBottom: 8,
-    fontSize: 17,
+    fontSize: 20,
     margin: 30,
+    color: 'black',
   },
   input: {
     backgroundColor: 'white',

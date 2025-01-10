@@ -24,11 +24,12 @@ const Login = ({ navigation }) => {
   };
 
   useEffect(() => {
-    console.log(userLogin)
+    
     if (userLogin != null) {
+      console.log('dang nhap thanh cong')
       if (userLogin.role === "admin")
         navigation.navigate("Admin")
-      else if (userLogin.role === "customer")
+      else if (userLogin.role === "customer" || userLogin.role === "user")
         navigation.navigate("Customer")
     }
   }, [userLogin])

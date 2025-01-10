@@ -12,7 +12,7 @@ const OrderDetail = ({ route, navigation }) => {
             try {
                 const orderDoc = await firestore()
                     .collection('Appointments')
-                    .where('id', '==', orderId) // Thay đổi cách query
+                    .where('id', '==', orderId)
                     .get();
 
                 if (!orderDoc.empty) {
@@ -41,7 +41,8 @@ const OrderDetail = ({ route, navigation }) => {
                         <View style={styles.statusBadge}>
                             <Text style={styles.statusText}>
                                 {orderData.state === 'new' ? 'Đang duyệt' : 
-                                orderData.state === 'complete' ? 'Đã hoàn thành' : 
+                                orderData.state === 'complete' ? 'Đã hoàn thành' :
+                                orderData.state === 'delivery' ? 'Đang chờ giao hàng' :  
                                 orderData.state}
                             </Text>
                         </View>
